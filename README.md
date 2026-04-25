@@ -38,3 +38,7 @@ winget install foolsgold.Muu
 ## ライセンス
 
 MIT License — [LICENSE](./LICENSE) を参照
+
+## 開発者向けドキュメント
+
+- [リリース手順](./docs/RELEASE.md) — GitHub Releases と winget への公開フロー
