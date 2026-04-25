@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
@@ -36,20 +37,55 @@ public partial class LauncherWindow : Window
 
             if (cell.IsCenter)
             {
-                var placeholder = new Border
-                {
-                    Width = CellSize,
-                    Height = CellSize,
-                    Margin = new Thickness(CellMargin),
-                    Background = Brushes.Transparent,
-                };
-                AppGrid.Children.Add(placeholder);
+                AppGrid.Children.Add(CreateDragHandle());
                 continue;
             }
 
             var button = CreateCellButton(cell);
             AppGrid.Children.Add(button);
         }
+    }
+
+    private Border CreateDragHandle()
+    {
+        // Three dots vertically as a "grip" hint (Segoe Fluent Icons \uE712 = MoreVertical)
+        var grip = new TextBlock
+        {
+            Text = "\uE712",
+            FontFamily = new FontFamily("Segoe Fluent Icons"),
+            FontSize = 22,
+            Foreground = (SolidColorBrush)FindResource("TertiaryTextBrush"),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            IsHitTestVisible = false,
+        };
+
+        // Match the size and margin of regular cells so the hit area is identical.
+        // Use alpha=1 instead of Brushes.Transparent to guarantee hit-testability.
+        var handle = new Border
+        {
+            Width = CellSize,
+            Height = CellSize,
+            Margin = new Thickness(CellMargin),
+            Background = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0)),
+            Cursor = Cursors.SizeAll,
+            Child = grip,
+        };
+
+        handle.MouseLeftButtonDown += (_, e) =>
+        {
+            if (e.ButtonState == MouseButtonState.Pressed)
+            {
+                // Win32 title-bar drag emulation
+                var hwnd = new WindowInteropHelper(this).Handle;
+                NativeMethods.ReleaseCapture();
+                NativeMethods.SendMessage(hwnd, NativeMethods.WM_NCLBUTTONDOWN,
+                    (IntPtr)NativeMethods.HTCAPTION, IntPtr.Zero);
+                e.Handled = true;
+            }
+        };
+
+        return handle;
     }
 
     private Border CreateCellButton(GridCellViewModel cell)

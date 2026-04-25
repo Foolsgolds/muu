@@ -39,4 +39,15 @@ internal static partial class NativeMethods
         public int X;
         public int Y;
     }
+
+    // Window dragging via title-bar emulation
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool ReleaseCapture();
+
+    [LibraryImport("user32.dll", EntryPoint = "SendMessageW")]
+    public static partial IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    public const uint WM_NCLBUTTONDOWN = 0x00A1;
+    public const int HTCAPTION = 2;
 }
