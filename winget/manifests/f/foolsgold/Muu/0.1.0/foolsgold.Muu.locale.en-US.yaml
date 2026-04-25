@@ -1,9 +1,9 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 
-PackageIdentifier: yanqirenshi.Muu
+PackageIdentifier: foolsgold.Muu
 PackageVersion: 0.1.0
 PackageLocale: en-US
-Publisher: yanqirenshi
+Publisher: foolsgold
 PublisherUrl: https://github.com/yanqirenshi
 PublisherSupportUrl: https://github.com/yanqirenshi/muu/issues
 Author: yanqirenshi
@@ -11,7 +11,7 @@ PackageName: Muu
 PackageUrl: https://github.com/yanqirenshi/muu
 License: MIT
 LicenseUrl: https://github.com/yanqirenshi/muu/blob/main/LICENSE
-Copyright: Copyright (c) 2026 yanqirenshi
+Copyright: Copyright (c) 2026 foolsgold
 ShortDescription: Windows 11 grid launcher with hotkey activation
 Description: |-
   Muu is a Windows 11 grid launcher that pops up at the mouse cursor

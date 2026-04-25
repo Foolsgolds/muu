@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 
-PackageIdentifier: yanqirenshi.Muu
+PackageIdentifier: foolsgold.Muu
 PackageVersion: 0.1.0
 InstallerType: portable
 Commands:

@@ -16,7 +16,7 @@ Windows 11 向けのグリッド型ランチャー。霧 (む) → muu。
 ### winget
 
 ```powershell
-winget install yanqirenshi.Muu
+winget install foolsgold.Muu
 ```
 
 ### 手動インストール

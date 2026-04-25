@@ -1,7 +1,7 @@
 # Created using Muu repository
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
 
-PackageIdentifier: yanqirenshi.Muu
+PackageIdentifier: foolsgold.Muu
 PackageVersion: 0.1.0
 DefaultLocale: en-US
 ManifestType: version
