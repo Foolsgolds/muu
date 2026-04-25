@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+
+PackageIdentifier: yanqirenshi.Muu
+PackageVersion: 0.1.0
+InstallerType: portable
+Commands:
+  - muu
+ReleaseDate: 2026-04-25
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/yanqirenshi/muu/releases/download/v0.1.0/Muu.exe
+    InstallerSha256: D6AA476C76DE7D5FF0B0D0B655D9E012A7D9D28EB12A1C0811069C576297514C
+ManifestType: installer
+ManifestVersion: 1.6.0
