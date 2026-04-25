@@ -13,8 +13,12 @@ namespace Muu.Views;
 public partial class LauncherWindow : Window
 {
     private const int GridSize = 5;
+    private const int CenterIndex = 12; // row=2, col=2 in 5x5
     private const double CellSize = 48;
     private const double CellMargin = 4;
+
+    private readonly Border?[] _cellBorders = new Border?[GridSize * GridSize];
+    private int _focusedCellIndex = -1;
 
     private LauncherViewModel ViewModel => (LauncherViewModel)DataContext;
 
@@ -29,11 +33,14 @@ public partial class LauncherWindow : Window
     private void BuildGrid()
     {
         AppGrid.Children.Clear();
+        Array.Clear(_cellBorders);
+        _focusedCellIndex = -1;
 
         for (int r = 0; r < GridSize; r++)
         for (int c = 0; c < GridSize; c++)
         {
-            var cell = ViewModel.GridCells[r * GridSize + c];
+            int idx = r * GridSize + c;
+            var cell = ViewModel.GridCells[idx];
 
             if (cell.IsCenter)
             {
@@ -42,6 +49,7 @@ public partial class LauncherWindow : Window
             }
 
             var button = CreateCellButton(cell);
+            _cellBorders[idx] = button;
             AppGrid.Children.Add(button);
         }
     }
@@ -193,6 +201,86 @@ public partial class LauncherWindow : Window
         }
     }
 
+    // ─── Grid focus / keyboard nav ───────────────────────────
+
+    private void SetFocusedCell(int index)
+    {
+        // Clear previous focus
+        if (_focusedCellIndex >= 0 && _cellBorders[_focusedCellIndex] is { } prev)
+        {
+            prev.BorderBrush = (SolidColorBrush)FindResource("SubtleBorderBrush");
+            prev.BorderThickness = new Thickness(0.5);
+        }
+
+        _focusedCellIndex = index;
+
+        if (index >= 0 && _cellBorders[index] is { } next)
+        {
+            next.BorderBrush = SystemParameters.WindowGlassBrush ?? Brushes.DodgerBlue;
+            next.BorderThickness = new Thickness(2);
+        }
+    }
+
+    private static int Wrap(int v, int max)
+    {
+        v %= max;
+        return v < 0 ? v + max : v;
+    }
+
+    private void MoveGridFocus(int dRow, int dCol)
+    {
+        // Pick a starting position if nothing is focused yet
+        int row, col;
+        if (_focusedCellIndex < 0)
+        {
+            row = 2; col = 2;
+        }
+        else
+        {
+            row = _focusedCellIndex / GridSize;
+            col = _focusedCellIndex % GridSize;
+        }
+
+        // Step until we land on a non-center cell
+        for (int safety = 0; safety < GridSize * GridSize; safety++)
+        {
+            row = Wrap(row + dRow, GridSize);
+            col = Wrap(col + dCol, GridSize);
+            int idx = row * GridSize + col;
+            if (idx == CenterIndex) continue;
+            SetFocusedCell(idx);
+            return;
+        }
+    }
+
+    private void TabGridFocus(int direction)
+    {
+        int start = _focusedCellIndex < 0 ? -direction : _focusedCellIndex;
+        int total = GridSize * GridSize;
+        for (int safety = 0; safety < total; safety++)
+        {
+            start = Wrap(start + direction, total);
+            if (start == CenterIndex) continue;
+            SetFocusedCell(start);
+            return;
+        }
+    }
+
+    private void ActivateFocusedCell()
+    {
+        if (_focusedCellIndex < 0) return;
+        var cell = ViewModel.GridCells[_focusedCellIndex];
+        if (cell.HasItem)
+        {
+            cell.Launch();
+            HideWindow();
+        }
+        else
+        {
+            OpenCellSettings(cell);
+        }
+    }
+
     // ─── Window Events ───────────────────────────────────────
 
     private void Window_SourceInitialized(object sender, EventArgs e) { }
@@ -204,27 +292,67 @@ public partial class LauncherWindow : Window
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        // Escape always hides
+        if (e.Key == Key.Escape)
+        {
+            HideWindow();
+            e.Handled = true;
+            return;
+        }
+
+        bool searching = ViewModel.Results.Count > 0;
+
+        if (searching)
+        {
+            // Navigate the search results list
+            switch (e.Key)
+            {
+                case Key.Down:
+                    ViewModel.MoveSelection(1);
+                    e.Handled = true;
+                    break;
+                case Key.Up:
+                    ViewModel.MoveSelection(-1);
+                    e.Handled = true;
+                    break;
+                case Key.Enter:
+                    ViewModel.ExecuteSelectedCommand.Execute(null);
+                    HideWindow();
+                    e.Handled = true;
+                    break;
+                case Key.Tab:
+                    ViewModel.MoveSelection(1);
+                    e.Handled = true;
+                    break;
+            }
+            return;
+        }
+
+        // No search active → navigate the 5x5 grid
         switch (e.Key)
         {
-            case Key.Escape:
-                HideWindow();
+            case Key.Up:
+                MoveGridFocus(-1, 0);
                 e.Handled = true;
                 break;
             case Key.Down:
-                ViewModel.MoveSelection(1);
+                MoveGridFocus(1, 0);
                 e.Handled = true;
                 break;
-            case Key.Up:
-                ViewModel.MoveSelection(-1);
+            case Key.Left:
+                MoveGridFocus(0, -1);
                 e.Handled = true;
                 break;
-            case Key.Enter:
-                ViewModel.ExecuteSelectedCommand.Execute(null);
-                HideWindow();
+            case Key.Right:
+                MoveGridFocus(0, 1);
                 e.Handled = true;
                 break;
             case Key.Tab:
-                ViewModel.MoveSelection(1);
+                TabGridFocus((e.KeyboardDevice.Modifiers & ModifierKeys.Shift) != 0 ? -1 : 1);
+                e.Handled = true;
+                break;
+            case Key.Enter:
+                ActivateFocusedCell();
                 e.Handled = true;
                 break;
         }
