@@ -57,16 +57,17 @@ public partial class LauncherWindow : Window
     private Border CreateDragHandle()
     {
         // Three dots vertically as a "grip" hint (Segoe Fluent Icons \uE712 = MoreVertical)
-        var grip = new TextBlock
+        var grip = new Image
         {
-            Text = "\uE712",
-            FontFamily = new FontFamily("Segoe Fluent Icons"),
-            FontSize = 22,
-            Foreground = (SolidColorBrush)FindResource("TertiaryTextBrush"),
+            Source = new System.Windows.Media.Imaging.BitmapImage(
+                new Uri("pack://application:,,,/Assets/muu-icon.png", UriKind.Absolute)),
+            Width = 40,
+            Height = 40,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             IsHitTestVisible = false,
         };
+        RenderOptions.SetBitmapScalingMode(grip, BitmapScalingMode.HighQuality);
 
         // Match the size and margin of regular cells so the hit area is identical.
         // Use alpha=1 instead of Brushes.Transparent to guarantee hit-testability.

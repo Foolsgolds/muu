@@ -76,6 +76,8 @@ public partial class App : Application
         _trayIcon = new TaskbarIcon
         {
             ToolTipText = "Muu Launcher (Win+Ctrl+Alt+M)",
+            IconSource = new System.Windows.Media.Imaging.BitmapImage(
+                new Uri("pack://application:,,,/Assets/muu-icon.ico", UriKind.Absolute)),
         };
 
         var menu = new System.Windows.Controls.ContextMenu();
