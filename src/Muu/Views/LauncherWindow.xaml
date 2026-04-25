@@ -26,77 +26,76 @@
     </Window.Resources>
 
     <Border x:Name="RootBorder"
-            ClipToBounds="True"
             Background="Transparent"
             BorderThickness="0">
 
-        <Grid>
-            <!-- Fog canvas (populated in code-behind) -->
-            <Canvas x:Name="FogCanvas" ClipToBounds="True" IsHitTestVisible="False" />
+        <StackPanel Margin="14">
+            <!-- 5x5 Grid (cells populated in code-behind) -->
+            <UniformGrid x:Name="AppGrid"
+                         Rows="5" Columns="5"
+                         Width="280" Height="280" />
 
-            <!-- Main content -->
-            <StackPanel Margin="10">
-                <UniformGrid x:Name="AppGrid"
-                             Rows="5" Columns="5"
-                             Width="260" Height="260" />
+            <!-- Search bar -->
+            <Border Margin="0,8,0,0"
+                    Padding="12,10"
+                    CornerRadius="8"
+                    Background="{StaticResource InputBackgroundBrush}"
+                    BorderBrush="{StaticResource SubtleBorderBrush}"
+                    BorderThickness="1">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Direction="270" Opacity="0.35" Color="Black" />
+                </Border.Effect>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Left"
+                               Text="&#xE721;"
+                               FontFamily="Segoe Fluent Icons"
+                               FontSize="16"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0" />
+                    <TextBox x:Name="QueryBox"
+                             Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource SearchTextBoxStyle}"
+                             FontSize="14" />
+                </DockPanel>
+            </Border>
 
-                <Border Margin="0,8,0,0"
-                        Padding="12,10"
-                        CornerRadius="8"
-                        Background="{StaticResource InputBackgroundBrush}"
-                        BorderBrush="{StaticResource SubtleBorderBrush}"
-                        BorderThickness="1">
-                    <DockPanel>
-                        <TextBlock DockPanel.Dock="Left"
-                                   Text="&#xE721;"
-                                   FontFamily="Segoe Fluent Icons"
-                                   FontSize="16"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,10,0" />
-                        <TextBox x:Name="QueryBox"
-                                 Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource SearchTextBoxStyle}"
-                                 FontSize="14" />
-                    </DockPanel>
-                </Border>
-
-                <ListBox x:Name="ResultList"
-                         ItemsSource="{Binding Results}"
-                         SelectedIndex="{Binding SelectedIndex}"
-                         Style="{StaticResource ResultListBoxStyle}"
-                         MaxHeight="300"
-                         Margin="0,4,0,0"
-                         Visibility="{Binding Results.Count, Converter={StaticResource CountToVisConverter}}">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate DataType="{x:Type models:SearchResult}">
-                            <Grid Height="38">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="32" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Image Source="{Binding Icon}" Width="22" Height="22"
-                                       RenderOptions.BitmapScalingMode="HighQuality"
-                                       VerticalAlignment="Center" />
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0">
-                                    <TextBlock Text="{Binding Title}" FontSize="13"
-                                               Foreground="{StaticResource PrimaryTextBrush}"
-                                               TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding Subtitle}" FontSize="10"
-                                               Foreground="{StaticResource SecondaryTextBrush}"
-                                               TextTrimming="CharacterEllipsis" />
-                                </StackPanel>
-                                <Border Grid.Column="2" VerticalAlignment="Center"
-                                        Padding="6,2" CornerRadius="4" Background="#18000000">
-                                    <TextBlock Text="{Binding Kind}" FontSize="10"
-                                               Foreground="{StaticResource TertiaryTextBrush}" />
-                                </Border>
-                            </Grid>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </StackPanel>
-        </Grid>
+            <!-- Search results -->
+            <ListBox x:Name="ResultList"
+                     ItemsSource="{Binding Results}"
+                     SelectedIndex="{Binding SelectedIndex}"
+                     Style="{StaticResource ResultListBoxStyle}"
+                     MaxHeight="300"
+                     Margin="0,4,0,0"
+                     Visibility="{Binding Results.Count, Converter={StaticResource CountToVisConverter}}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type models:SearchResult}">
+                        <Grid Height="38">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Image Source="{Binding Icon}" Width="22" Height="22"
+                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                   VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0">
+                                <TextBlock Text="{Binding Title}" FontSize="13"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Subtitle}" FontSize="10"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <Border Grid.Column="2" VerticalAlignment="Center"
+                                    Padding="6,2" CornerRadius="4" Background="#18000000">
+                                <TextBlock Text="{Binding Kind}" FontSize="10"
+                                           Foreground="{StaticResource TertiaryTextBrush}" />
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </StackPanel>
     </Border>
 </Window>

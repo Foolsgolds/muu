@@ -3,8 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Shapes;
-using System.Windows.Threading;
+using System.Windows.Media.Effects;
 using Muu.Interop;
 using Muu.ViewModels;
 
@@ -14,105 +13,14 @@ public partial class LauncherWindow : Window
 {
     private const int GridSize = 5;
     private const double CellSize = 48;
-    private const double CellMargin = 2;
-
-    private readonly DispatcherTimer _fogTimer;
-    private readonly FogLayer[] _fogLayers;
-    private double _time;
+    private const double CellMargin = 4;
 
     private LauncherViewModel ViewModel => (LauncherViewModel)DataContext;
 
     public LauncherWindow()
     {
         InitializeComponent();
-
-        // Define fog layers
-        _fogLayers =
-        [
-            new(-60, -30, 280, 240, "#BBFFFFFF",  0.06,  0.04,   70, -40),
-            new( 40,  80, 260, 220, "#BBD8E0EC",  0.04,  0.05,  -50,  45),
-            new( 10, 150, 220, 180, "#BBEAE6E2",  0.05,  0.06,  -60, -35),
-            new(120, -20, 240, 200, "#BBFFFFFF",  0.035, 0.03,   40,  50),
-            new(-30,  60, 300, 200, "#BBCCD6E4",  0.03,  0.045, -45, -30),
-        ];
-
-        // Create fog ellipses on canvas
-        Loaded += (_, _) =>
-        {
-            BuildGrid();
-            BuildFogLayers();
-        };
-
-        // Timer for fog animation (~30fps)
-        _fogTimer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromMilliseconds(33),
-        };
-        _fogTimer.Tick += FogTimer_Tick;
-        _fogTimer.Start();
-    }
-
-    // ─── Fog ─────────────────────────────────────────────────
-
-    private sealed class FogLayer
-    {
-        public Ellipse Ellipse = null!;
-        public double BaseX, BaseY;
-        public double SpeedX, SpeedY;
-        public double RangeX, RangeY;
-
-        public FogLayer(double x, double y, double w, double h, string color,
-                        double speedX, double speedY, double rangeX, double rangeY)
-        {
-            BaseX = x; BaseY = y;
-            SpeedX = speedX; SpeedY = speedY;
-            RangeX = rangeX; RangeY = rangeY;
-
-            Ellipse = new Ellipse
-            {
-                Width = w,
-                Height = h,
-                IsHitTestVisible = false,
-                Fill = new RadialGradientBrush
-                {
-                    GradientStops =
-                    {
-                        new GradientStop((Color)ColorConverter.ConvertFromString(color), 0),
-                        new GradientStop(Colors.Transparent, 1),
-                    }
-                }
-            };
-        }
-    }
-
-    private void BuildFogLayers()
-    {
-        FogCanvas.Children.Clear();
-        foreach (var layer in _fogLayers)
-        {
-            Canvas.SetLeft(layer.Ellipse, layer.BaseX);
-            Canvas.SetTop(layer.Ellipse, layer.BaseY);
-            FogCanvas.Children.Add(layer.Ellipse);
-        }
-    }
-
-    private void FogTimer_Tick(object? sender, EventArgs e)
-    {
-        if (!IsVisible) return;
-
-        _time += 0.033;
-
-        for (int i = 0; i < _fogLayers.Length; i++)
-        {
-            var layer = _fogLayers[i];
-            double offsetX = Math.Sin(_time * layer.SpeedX * 2 * Math.PI) * layer.RangeX;
-            double offsetY = Math.Cos(_time * layer.SpeedY * 2 * Math.PI + i) * layer.RangeY;
-            double opacity = 0.35 + 0.2 * Math.Sin(_time * 0.15 + i * 1.3);
-
-            Canvas.SetLeft(layer.Ellipse, layer.BaseX + offsetX);
-            Canvas.SetTop(layer.Ellipse, layer.BaseY + offsetY);
-            layer.Ellipse.Opacity = opacity;
-        }
+        Loaded += (_, _) => BuildGrid();
     }
 
     // ─── Grid ────────────────────────────────────────────────
@@ -149,8 +57,8 @@ public partial class LauncherWindow : Window
         var icon = new Image
         {
             Source = cell.Icon,
-            Width = 20,
-            Height = 20,
+            Width = 22,
+            Height = 22,
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center,
         };
@@ -194,9 +102,17 @@ public partial class LauncherWindow : Window
             CornerRadius = new CornerRadius(8),
             Background = (SolidColorBrush)FindResource("CellBackgroundBrush"),
             BorderBrush = (SolidColorBrush)FindResource("SubtleBorderBrush"),
-            BorderThickness = new Thickness(0.8),
+            BorderThickness = new Thickness(0.5),
             Child = stack,
             Cursor = Cursors.Hand,
+            Effect = new DropShadowEffect
+            {
+                BlurRadius = 10,
+                ShadowDepth = 2,
+                Direction = 270,
+                Opacity = 0.35,
+                Color = Colors.Black,
+            },
         };
 
         var normalBg = (SolidColorBrush)FindResource("CellBackgroundBrush");
