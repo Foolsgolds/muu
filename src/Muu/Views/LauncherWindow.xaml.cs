@@ -15,6 +15,7 @@ public partial class LauncherWindow : Window
     private const int GridSize = 5;
     private const int CenterIndex = 12;       // row=2, col=2 in 5x5 (drag handle)
     private const int SearchToggleIndex = 20; // row=4, col=0 in 5x5 (search toggle)
+    private const int SettingsIndex = 24;     // row=4, col=4 in 5x5 (settings)
     private const double CellSize = 48;
     private const double CellMargin = 4;
 
@@ -54,6 +55,14 @@ public partial class LauncherWindow : Window
                 var toggle = CreateSearchToggle();
                 _cellBorders[idx] = toggle;
                 AppGrid.Children.Add(toggle);
+                continue;
+            }
+
+            if (idx == SettingsIndex)
+            {
+                var settingsBtn = CreateSettingsButton();
+                _cellBorders[idx] = settingsBtn;
+                AppGrid.Children.Add(settingsBtn);
                 continue;
             }
 
@@ -164,6 +173,58 @@ public partial class LauncherWindow : Window
             QueryBox.Focus();
             QueryBox.SelectAll();
         }
+    }
+
+    private Border CreateSettingsButton()
+    {
+        var icon = new TextBlock
+        {
+            Text = "", // Settings (gear) glyph in Segoe Fluent Icons (U+E713)
+            FontFamily = new FontFamily("Segoe Fluent Icons"),
+            FontSize = 22,
+            Foreground = (SolidColorBrush)FindResource("PrimaryTextBrush"),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            IsHitTestVisible = false,
+        };
+
+        var border = new Border
+        {
+            Width = CellSize,
+            Height = CellSize,
+            Margin = new Thickness(CellMargin),
+            CornerRadius = new CornerRadius(8),
+            Background = (SolidColorBrush)FindResource("CellBackgroundBrush"),
+            BorderBrush = (SolidColorBrush)FindResource("SubtleBorderBrush"),
+            BorderThickness = new Thickness(0.5),
+            Child = icon,
+            Cursor = Cursors.Hand,
+            ToolTip = "設定",
+            Effect = new DropShadowEffect
+            {
+                BlurRadius = 10,
+                ShadowDepth = 2,
+                Direction = 270,
+                Opacity = 0.35,
+                Color = Colors.Black,
+            },
+        };
+
+        var normalBg = (SolidColorBrush)FindResource("CellBackgroundBrush");
+        var hoverBg = (SolidColorBrush)FindResource("HoverItemBrush");
+        border.MouseEnter += (_, _) => border.Background = hoverBg;
+        border.MouseLeave += (_, _) => border.Background = normalBg;
+
+        border.MouseLeftButtonUp += (_, _) => OpenSettings();
+
+        return border;
+    }
+
+    public void OpenSettings()
+    {
+        var dlg = new SettingsWindow();
+        if (IsVisible) dlg.Owner = this;
+        dlg.ShowDialog();
     }
 
     private Border CreateCellButton(GridCellViewModel cell)
@@ -318,8 +379,10 @@ public partial class LauncherWindow : Window
     private Brush DefaultBorderBrushFor(int index)
     {
         // Empty user-cells render with a transparent border; the search-
-        // toggle and registered cells use the subtle border.
-        if (index != SearchToggleIndex && index >= 0 && index < ViewModel.GridCells.Length
+        // toggle, settings, and registered cells use the subtle border.
+        if (index != SearchToggleIndex
+            && index != SettingsIndex
+            && index >= 0 && index < ViewModel.GridCells.Length
             && !ViewModel.GridCells[index].HasItem)
         {
             return Brushes.Transparent;
@@ -380,6 +443,13 @@ public partial class LauncherWindow : Window
         if (_focusedCellIndex == SearchToggleIndex)
         {
             ToggleSearch();
+            return;
+        }
+
+        // Settings slot: Enter opens the settings dialog
+        if (_focusedCellIndex == SettingsIndex)
+        {
+            OpenSettings();
             return;
         }
 

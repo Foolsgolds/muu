@@ -3,6 +3,7 @@ using System.Windows.Interop;
 using Hardcodet.Wpf.TaskbarNotification;
 using Muu.Infrastructure;
 using Muu.Interop;
+using Muu.Models;
 using Muu.Services;
 using Muu.ViewModels;
 using Muu.Views;
@@ -16,6 +17,10 @@ public partial class App : Application
     private LauncherWindow? _launcherWindow;
     private TaskbarIcon? _trayIcon;
 
+    public AppSettings Settings { get; private set; } = new();
+
+    public static App Instance => (App)Application.Current;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -27,6 +32,9 @@ public partial class App : Application
             Shutdown();
             return;
         }
+
+        // Load persisted settings
+        Settings = AppSettings.Load();
 
         // Build search pipeline
         var providers = new ISearchProvider[]
@@ -51,14 +59,29 @@ public partial class App : Application
             var hwnd = new WindowInteropHelper(_launcherWindow).Handle;
             _hotkeyManager = new HotkeyManager();
             _hotkeyManager.HotkeyPressed += ToggleLauncher;
-            _hotkeyManager.Register(hwnd);
-
-            // No DWM backdrop - fully transparent window
+            _hotkeyManager.Register(hwnd, (uint)Settings.HotkeyModifiers, Settings.HotkeyVirtualKey);
         };
 
         // Show once to initialize, then hide
         _launcherWindow.Show();
         _launcherWindow.Hide();
+    }
+
+    /// <summary>
+    /// Re-register the global hotkey using the current AppSettings values.
+    /// Returns false if RegisterHotKey failed (e.g. combination already in use).
+    /// </summary>
+    public bool ReapplyHotkey()
+    {
+        if (_hotkeyManager is null) return false;
+        bool ok = _hotkeyManager.Reregister(
+            (uint)Settings.HotkeyModifiers,
+            Settings.HotkeyVirtualKey);
+
+        if (_trayIcon is not null)
+            _trayIcon.ToolTipText = $"Muu Launcher ({HotkeyDisplay.Format(Settings)})";
+
+        return ok;
     }
 
     private void ToggleLauncher()
@@ -75,7 +98,7 @@ public partial class App : Application
     {
         _trayIcon = new TaskbarIcon
         {
-            ToolTipText = "Muu Launcher (Win+Ctrl+Alt+M)",
+            ToolTipText = $"Muu Launcher ({HotkeyDisplay.Format(Settings)})",
             IconSource = new System.Windows.Media.Imaging.BitmapImage(
                 new Uri("pack://application:,,,/Assets/muu-icon.ico", UriKind.Absolute)),
         };
@@ -85,6 +108,10 @@ public partial class App : Application
         var showItem = new System.Windows.Controls.MenuItem { Header = "表示 (_S)" };
         showItem.Click += (_, _) => _launcherWindow?.ShowWindow();
         menu.Items.Add(showItem);
+
+        var settingsItem = new System.Windows.Controls.MenuItem { Header = "設定 (_C)" };
+        settingsItem.Click += (_, _) => _launcherWindow?.OpenSettings();
+        menu.Items.Add(settingsItem);
 
         menu.Items.Add(new System.Windows.Controls.Separator());
 
