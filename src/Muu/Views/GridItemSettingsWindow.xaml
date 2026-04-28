@@ -2,86 +2,299 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Muu - スロット設定"
-        Width="460" Height="280"
+        Width="540"
+        SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        Background="#1E1E1E">
+        Background="{DynamicResource WindowBg}">
 
     <Window.Resources>
+        <!-- Initial fallback brushes; ThemeHelper.Apply() overrides these -->
+        <SolidColorBrush x:Key="WindowBg" Color="#F3F3F3" />
+        <SolidColorBrush x:Key="ControlBg" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ListBg" Color="#F8F8F8" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#D0D0D0" />
+        <SolidColorBrush x:Key="PrimaryFg" Color="#1F1F1F" />
+        <SolidColorBrush x:Key="SecondaryFg" Color="#666666" />
+        <SolidColorBrush x:Key="ButtonBg" Color="#FAFAFA" />
+        <SolidColorBrush x:Key="ButtonBorder" Color="#C0C0C0" />
+
         <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#E4E4E4" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryFg}" />
             <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <Style TargetType="TextBox">
-            <Setter Property="Background" Value="#2D2D2D" />
-            <Setter Property="Foreground" Value="#E4E4E4" />
-            <Setter Property="BorderBrush" Value="#444" />
+            <Setter Property="Background" Value="{DynamicResource ControlBg}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryFg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
             <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Padding" Value="6,4" />
-            <Setter Property="CaretBrush" Value="#E4E4E4" />
+            <Setter Property="CaretBrush" Value="{DynamicResource PrimaryFg}" />
         </Style>
         <Style TargetType="Button">
-            <Setter Property="Background" Value="#3A3A3A" />
-            <Setter Property="Foreground" Value="#E4E4E4" />
-            <Setter Property="BorderBrush" Value="#555" />
+            <Setter Property="Background" Value="{DynamicResource ButtonBg}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryFg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorder}" />
             <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI" />
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="Padding" Value="16,6" />
+            <Setter Property="Padding" Value="14,6" />
             <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <!-- Custom ComboBox template so theme colors are applied uniformly. -->
+        <ControlTemplate x:Key="ComboBoxToggleButtonTemplate" TargetType="ToggleButton">
+            <Border Background="{DynamicResource ControlBg}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="20" />
+                    </Grid.ColumnDefinitions>
+                    <ContentPresenter Grid.Column="0"
+                                      Margin="6,4,0,4"
+                                      HorizontalAlignment="Left"
+                                      VerticalAlignment="Center"
+                                      Content="{TemplateBinding Content}"
+                                      TextBlock.Foreground="{DynamicResource PrimaryFg}" />
+                    <Path Grid.Column="1"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          Data="M 0 0 L 4 4 L 8 0 Z"
+                          Fill="{DynamicResource PrimaryFg}" />
+                </Grid>
+            </Border>
+        </ControlTemplate>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource ControlBg}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryFg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Template="{StaticResource ComboBoxToggleButtonTemplate}"
+                                          Focusable="False"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press">
+                                <ContentPresenter x:Name="ContentSite"
+                                                  Content="{TemplateBinding SelectionBoxItem}"
+                                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                  ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                                  TextBlock.Foreground="{DynamicResource PrimaryFg}" />
+                            </ToggleButton>
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Grid MinWidth="{TemplateBinding ActualWidth}"
+                                      MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="1"
+                                            Background="{DynamicResource ControlBg}">
+                                        <ScrollViewer>
+                                            <StackPanel IsItemsHost="True"
+                                                        TextBlock.Foreground="{DynamicResource PrimaryFg}" />
+                                        </ScrollViewer>
+                                    </Border>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryFg}" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd"
+                                Background="Transparent"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background"
+                                        Value="{DynamicResource ListBg}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="{DynamicResource ListBg}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryFg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        </Style>
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryFg}" />
+            <Setter Property="Padding" Value="6,2" />
         </Style>
     </Window.Resources>
 
-    <Grid Margin="24,20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="12" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="12" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="12" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="80" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
-
-        <!-- Name -->
-        <TextBlock Grid.Row="0" Text="名前" />
-        <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
-                 x:Name="NameBox" />
-
-        <!-- Target Path -->
-        <TextBlock Grid.Row="2" Text="パス" />
-        <TextBox Grid.Row="2" Grid.Column="1"
-                 x:Name="PathBox" Margin="0,0,8,0" />
-        <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal">
-            <Button Content="ファイル..." Click="BrowseFile_Click" Margin="0,0,4,0" Padding="10,6" />
-            <Button Content="フォルダ..." Click="BrowseFolder_Click" Padding="10,6" />
-        </StackPanel>
-
-        <!-- Arguments -->
-        <TextBlock Grid.Row="4" Text="引数" />
-        <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2"
-                 x:Name="ArgsBox" />
-
+    <DockPanel Margin="20,16">
         <!-- Position label -->
-        <TextBlock Grid.Row="6" Grid.ColumnSpan="3"
+        <TextBlock DockPanel.Dock="Top"
                    x:Name="PositionLabel"
-                   Foreground="#888" FontSize="11" />
+                   Foreground="{DynamicResource SecondaryFg}" FontSize="11"
+                   Margin="0,0,0,8" />
 
-        <!-- Buttons -->
-        <StackPanel Grid.Row="8" Grid.ColumnSpan="3"
-                    Orientation="Horizontal" HorizontalAlignment="Right">
+        <!-- Buttons (bottom) -->
+        <StackPanel DockPanel.Dock="Bottom"
+                    Orientation="Horizontal" HorizontalAlignment="Right"
+                    Margin="0,12,0,0">
             <Button Content="クリア" Click="Clear_Click" Margin="0,0,8,0" />
             <Button Content="キャンセル" Click="Cancel_Click" Margin="0,0,8,0" />
             <Button Content="OK" Click="OK_Click" IsDefault="True" />
         </StackPanel>
-    </Grid>
+
+        <!-- Kind selector (top) -->
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="80" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="種類" />
+            <ComboBox Grid.Column="1"
+                      x:Name="KindCombo"
+                      SelectionChanged="KindCombo_SelectionChanged">
+                <ComboBoxItem Content="アプリ" Tag="App" />
+                <ComboBoxItem Content="フォルダ" Tag="Folder" />
+                <ComboBoxItem Content="ファイル" Tag="File" />
+            </ComboBox>
+        </Grid>
+
+        <!-- Sections container: a single Grid that fills the remaining DockPanel
+             space, so the inner sections stretch to the full width.
+             (DockPanel children without Dock would otherwise be left-docked at
+             their natural width.) -->
+        <Grid>
+        <!-- ============= APP section ============= -->
+        <Grid x:Name="AppSection" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="320" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="80" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="名前" />
+                <TextBox Grid.Column="1" x:Name="AppNameBox" />
+            </Grid>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="80" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="絞り込み" />
+                <TextBox Grid.Column="1" x:Name="AppFilterBox"
+                         TextChanged="AppFilterBox_TextChanged" />
+            </Grid>
+
+            <ListBox Grid.Row="4" x:Name="AppListBox"
+                     SelectionChanged="AppListBox_SelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Height="36">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Image Source="{Binding Icon}" Width="20" Height="20"
+                                   VerticalAlignment="Center"
+                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="6,0,0,0">
+                                <TextBlock Text="{Binding Name}" FontSize="13"
+                                           Foreground="{DynamicResource PrimaryFg}" />
+                                <TextBlock Text="{Binding TargetPath}" FontSize="10"
+                                           Foreground="{DynamicResource SecondaryFg}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+
+        <!-- ============= FOLDER section ============= -->
+        <Grid x:Name="FolderSection" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="80" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Row="0" Text="名前" />
+            <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
+                     x:Name="FolderNameBox" />
+
+            <TextBlock Grid.Row="2" Text="フォルダ" />
+            <TextBox Grid.Row="2" Grid.Column="1"
+                     x:Name="FolderPathBox"
+                     Margin="0,0,8,0" />
+            <Button Grid.Row="2" Grid.Column="2"
+                    Content="参照..." Click="BrowseFolder_Click" />
+        </Grid>
+
+        <!-- ============= FILE section ============= -->
+        <Grid x:Name="FileSection" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="80" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Row="0" Text="名前" />
+            <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
+                     x:Name="FileNameBox" />
+
+            <TextBlock Grid.Row="2" Text="ファイル" />
+            <TextBox Grid.Row="2" Grid.Column="1"
+                     x:Name="FilePathBox"
+                     Margin="0,0,8,0" />
+            <Button Grid.Row="2" Grid.Column="2"
+                    Content="参照..." Click="BrowseFile_Click" />
+
+            <TextBlock Grid.Row="4" Text="引数" />
+            <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2"
+                     x:Name="FileArgsBox" />
+        </Grid>
+        </Grid>
+    </DockPanel>
 </Window>

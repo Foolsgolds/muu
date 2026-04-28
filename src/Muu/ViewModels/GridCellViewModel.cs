@@ -26,6 +26,9 @@ public partial class GridCellViewModel : ObservableObject
     private string _arguments = string.Empty;
 
     [ObservableProperty]
+    private GridItemKind _kind = GridItemKind.File;
+
+    [ObservableProperty]
     private ImageSource? _icon;
 
     public bool HasItem => !string.IsNullOrWhiteSpace(TargetPath);
@@ -43,6 +46,7 @@ public partial class GridCellViewModel : ObservableObject
             Name = string.Empty;
             TargetPath = string.Empty;
             Arguments = string.Empty;
+            Kind = GridItemKind.File;
             Icon = null;
         }
         else
@@ -50,6 +54,7 @@ public partial class GridCellViewModel : ObservableObject
             Name = item.Name;
             TargetPath = item.TargetPath;
             Arguments = item.Arguments;
+            Kind = item.Kind;
             LoadIcon(item.TargetPath);
         }
         OnPropertyChanged(nameof(HasItem));
@@ -62,6 +67,7 @@ public partial class GridCellViewModel : ObservableObject
         Name = Name,
         TargetPath = TargetPath,
         Arguments = Arguments,
+        Kind = Kind,
     };
 
     public void Launch()
