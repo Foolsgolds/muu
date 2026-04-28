@@ -37,6 +37,7 @@ public static class InstalledAppsService
     {
         var result = new List<AppInfo>();
 
+        // 1. Start Menu .lnk shortcuts (regular Win32 apps)
         var dirs = new[]
         {
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu), "Programs"),
@@ -61,12 +62,110 @@ public static class InstalledAppsService
             }
         }
 
+        // 2. shell:AppsFolder enumeration (covers UWP / MSIX / Store apps that
+        //    don't ship .lnk shortcuts, plus a lot of Win32 apps as well).
+        try
+        {
+            result.AddRange(EnumerateAppsFolder());
+        }
+        catch
+        {
+            // Shell COM may fail in restricted environments; fall back gracefully.
+        }
+
         // De-duplicate: same display name + target path
         return result
             .GroupBy(a => (a.Name.ToLowerInvariant(), a.TargetPath.ToLowerInvariant()))
             .Select(g => g.First())
             .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static IEnumerable<AppInfo> EnumerateAppsFolder()
+    {
+        var shellType = Type.GetTypeFromProgID("Shell.Application");
+        if (shellType is null) yield break;
+
+        dynamic? shell = Activator.CreateInstance(shellType);
+        if (shell is null) yield break;
+
+        dynamic? appsFolder = shell.NameSpace("shell:AppsFolder");
+        if (appsFolder is null) yield break;
+
+        dynamic items = appsFolder.Items();
+
+        foreach (dynamic item in items)
+        {
+            string name;
+            string aumidOrPath;
+            try
+            {
+                name = (string)item.Name;
+                aumidOrPath = (string)item.Path;
+            }
+            catch { continue; }
+
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(aumidOrPath))
+                continue;
+
+            // For UWP / Store apps the Path property is the AUMID without the
+            // shell:AppsFolder\ prefix; for regular apps it's the full file path.
+            // Process.Start with UseShellExecute can launch either via the
+            // "shell:AppsFolder\<AUMID>" form, so we normalise to that.
+            string targetPath = aumidOrPath.Contains(@":\")
+                ? aumidOrPath                                  // already a regular file path
+                : @"shell:AppsFolder\" + aumidOrPath;          // AUMID → shell URI
+
+            BitmapSource? icon = TryGetShellIcon(@"shell:AppsFolder\" + aumidOrPath);
+
+            yield return new AppInfo
+            {
+                Name = name,
+                TargetPath = targetPath,
+                Arguments = string.Empty,
+                Icon = icon,
+            };
+        }
+    }
+
+    private static BitmapSource? TryGetShellIcon(string parsingName)
+    {
+        IntPtr pidl = IntPtr.Zero;
+        try
+        {
+            int hr = NativeMethods.SHParseDisplayName(parsingName, IntPtr.Zero, out pidl, 0, out _);
+            if (hr != 0 || pidl == IntPtr.Zero) return null;
+
+            var info = default(NativeMethods.SHFILEINFO);
+            uint flags = NativeMethods.SHGFI_ICON
+                       | NativeMethods.SHGFI_LARGEICON
+                       | NativeMethods.SHGFI_PIDL;
+            var rc = NativeMethods.SHGetFileInfoPidl(pidl, 0, ref info,
+                (uint)Marshal.SizeOf(info), flags);
+
+            if (rc == IntPtr.Zero || info.hIcon == IntPtr.Zero) return null;
+
+            try
+            {
+                var bmp = Imaging.CreateBitmapSourceFromHIcon(
+                    info.hIcon, Int32Rect.Empty,
+                    BitmapSizeOptions.FromEmptyOptions());
+                bmp.Freeze();
+                return bmp;
+            }
+            finally
+            {
+                NativeMethods.DestroyIcon(info.hIcon);
+            }
+        }
+        catch
+        {
+            return null;
+        }
+        finally
+        {
+            if (pidl != IntPtr.Zero) NativeMethods.CoTaskMemFree(pidl);
+        }
     }
 
     private static AppInfo? ResolveShortcut(string lnkPath)

@@ -32,6 +32,19 @@ public sealed class AppSearchProvider : ISearchProvider
 
     private static void Launch(AppInfo app)
     {
+        // shell:AppsFolder\<AUMID> entries (Store / UWP apps) need to be
+        // launched via explorer.exe; regular paths use UseShellExecute.
+        if (app.TargetPath.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = "\"" + app.TargetPath + "\"",
+                UseShellExecute = false,
+            });
+            return;
+        }
+
         Process.Start(new ProcessStartInfo
         {
             FileName = app.TargetPath,

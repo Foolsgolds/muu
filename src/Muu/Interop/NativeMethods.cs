@@ -86,4 +86,28 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool DestroyIcon(IntPtr hIcon);
+
+    // SHFI flag for "first arg is a PIDL pointer, not a file path".
+    public const uint SHGFI_PIDL = 0x000000008;
+
+    // PIDL-based overload of SHGetFileInfo (different first-arg type).
+    [DllImport("shell32.dll", EntryPoint = "SHGetFileInfoW", CharSet = CharSet.Unicode)]
+    public static extern IntPtr SHGetFileInfoPidl(
+        IntPtr pidl,
+        uint dwFileAttributes,
+        ref SHFILEINFO psfi,
+        uint cbFileInfo,
+        uint uFlags);
+
+    // Parse a shell display name (e.g. "shell:AppsFolder\<AUMID>") into a PIDL.
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    public static extern int SHParseDisplayName(
+        string pszName,
+        IntPtr pbc,
+        out IntPtr ppidl,
+        uint sfgaoIn,
+        out uint psfgaoOut);
+
+    [DllImport("ole32.dll")]
+    public static extern void CoTaskMemFree(IntPtr pv);
 }

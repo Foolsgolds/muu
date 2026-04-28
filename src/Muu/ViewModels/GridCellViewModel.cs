@@ -75,6 +75,20 @@ public partial class GridCellViewModel : ObservableObject
         if (!HasItem) return;
         try
         {
+            // For UWP / Store apps the TargetPath is "shell:AppsFolder\<AUMID>".
+            // Process.Start can't invoke that directly even with UseShellExecute,
+            // so we route it through explorer.exe.
+            if (TargetPath.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = "\"" + TargetPath + "\"",
+                    UseShellExecute = false,
+                });
+                return;
+            }
+
             Process.Start(new ProcessStartInfo
             {
                 FileName = TargetPath,
@@ -90,6 +104,13 @@ public partial class GridCellViewModel : ObservableObject
         Icon = null;
         try
         {
+            // shell: URIs (UWP / Store apps) need PIDL-based icon lookup.
+            if (path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
+            {
+                Icon = LoadShellIcon(path);
+                return;
+            }
+
             bool isDirectory = Directory.Exists(path);
             bool exists = isDirectory || File.Exists(path);
 
@@ -125,6 +146,46 @@ public partial class GridCellViewModel : ObservableObject
         catch
         {
             Icon = null;
+        }
+    }
+
+    private static BitmapSource? LoadShellIcon(string parsingName)
+    {
+        IntPtr pidl = IntPtr.Zero;
+        try
+        {
+            int hr = NativeMethods.SHParseDisplayName(parsingName, IntPtr.Zero, out pidl, 0, out _);
+            if (hr != 0 || pidl == IntPtr.Zero) return null;
+
+            var info = default(NativeMethods.SHFILEINFO);
+            uint flags = NativeMethods.SHGFI_ICON
+                       | NativeMethods.SHGFI_LARGEICON
+                       | NativeMethods.SHGFI_PIDL;
+            var rc = NativeMethods.SHGetFileInfoPidl(pidl, 0, ref info,
+                (uint)System.Runtime.InteropServices.Marshal.SizeOf(info), flags);
+
+            if (rc == IntPtr.Zero || info.hIcon == IntPtr.Zero) return null;
+
+            try
+            {
+                var bmp = Imaging.CreateBitmapSourceFromHIcon(
+                    info.hIcon, Int32Rect.Empty,
+                    BitmapSizeOptions.FromEmptyOptions());
+                bmp.Freeze();
+                return bmp;
+            }
+            finally
+            {
+                NativeMethods.DestroyIcon(info.hIcon);
+            }
+        }
+        catch
+        {
+            return null;
+        }
+        finally
+        {
+            if (pidl != IntPtr.Zero) NativeMethods.CoTaskMemFree(pidl);
         }
     }
 }
