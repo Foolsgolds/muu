@@ -29,9 +29,16 @@ public partial class GridCellViewModel : ObservableObject
     private GridItemKind _kind = GridItemKind.File;
 
     [ObservableProperty]
+    private SystemAction _systemAction = SystemAction.None;
+
+    [ObservableProperty]
     private ImageSource? _icon;
 
-    public bool HasItem => !string.IsNullOrWhiteSpace(TargetPath);
+    public bool HasItem =>
+        (Kind == GridItemKind.System && SystemAction != SystemAction.None)
+        || !string.IsNullOrWhiteSpace(TargetPath);
+
+    public bool IsSystem => Kind == GridItemKind.System && SystemAction != SystemAction.None;
 
     public GridCellViewModel(int row, int column)
     {
@@ -41,12 +48,15 @@ public partial class GridCellViewModel : ObservableObject
 
     public void LoadFrom(GridItem? item)
     {
-        if (item is null || string.IsNullOrWhiteSpace(item.TargetPath))
+        bool isSystem = item is { Kind: GridItemKind.System, SystemAction: not SystemAction.None };
+
+        if (item is null || (!isSystem && string.IsNullOrWhiteSpace(item.TargetPath)))
         {
             Name = string.Empty;
             TargetPath = string.Empty;
             Arguments = string.Empty;
             Kind = GridItemKind.File;
+            SystemAction = SystemAction.None;
             Icon = null;
         }
         else
@@ -55,9 +65,14 @@ public partial class GridCellViewModel : ObservableObject
             TargetPath = item.TargetPath;
             Arguments = item.Arguments;
             Kind = item.Kind;
-            LoadIcon(item.TargetPath);
+            SystemAction = item.SystemAction;
+            if (!isSystem)
+                LoadIcon(item.TargetPath);
+            else
+                Icon = null; // system slots use a glyph rendered by the view
         }
         OnPropertyChanged(nameof(HasItem));
+        OnPropertyChanged(nameof(IsSystem));
     }
 
     public GridItem ToGridItem() => new()
@@ -68,6 +83,7 @@ public partial class GridCellViewModel : ObservableObject
         TargetPath = TargetPath,
         Arguments = Arguments,
         Kind = Kind,
+        SystemAction = SystemAction,
     };
 
     public void Launch()

@@ -175,6 +175,7 @@
                 <ComboBoxItem Content="アプリ" Tag="App" />
                 <ComboBoxItem Content="フォルダ" Tag="Folder" />
                 <ComboBoxItem Content="ファイル" Tag="File" />
+                <ComboBoxItem Content="システム (検索 / 設定)" Tag="System" />
                 <ComboBoxItem Content="なし (未登録)" Tag="None" />
             </ComboBox>
         </Grid>
@@ -294,6 +295,36 @@
             <TextBlock Grid.Row="4" Text="引数" />
             <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2"
                      x:Name="FileArgsBox" />
+        </Grid>
+
+        <!-- ============= SYSTEM section ============= -->
+        <Grid x:Name="SystemSection" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="80" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Row="0" Text="動作" VerticalAlignment="Top" Margin="0,8,0,0" />
+            <StackPanel Grid.Row="0" Grid.Column="1">
+                <RadioButton x:Name="SystemSearchRadio"
+                             GroupName="SystemAction"
+                             Content="検索 (虫眼鏡)"
+                             Foreground="{DynamicResource PrimaryFg}"
+                             FontFamily="Segoe UI Variable, Segoe UI"
+                             FontSize="13"
+                             Margin="0,4,0,4" />
+                <RadioButton x:Name="SystemSettingsRadio"
+                             GroupName="SystemAction"
+                             Content="設定 (歯車)"
+                             Foreground="{DynamicResource PrimaryFg}"
+                             FontFamily="Segoe UI Variable, Segoe UI"
+                             FontSize="13"
+                             Margin="0,4,0,4" />
+            </StackPanel>
         </Grid>
         </Grid>
     </DockPanel>

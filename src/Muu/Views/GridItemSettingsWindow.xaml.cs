@@ -47,6 +47,10 @@ public partial class GridItemSettingsWindow : Window
                     FilePathBox.Text = existing.TargetPath;
                     FileArgsBox.Text = existing.Arguments;
                     break;
+                case GridItemKind.System:
+                    SystemSearchRadio.IsChecked = existing.SystemAction == SystemAction.Search;
+                    SystemSettingsRadio.IsChecked = existing.SystemAction == SystemAction.Settings;
+                    break;
             }
         }
 
@@ -111,6 +115,7 @@ public partial class GridItemSettingsWindow : Window
         AppSection.Visibility = kind == GridItemKind.App ? Visibility.Visible : Visibility.Collapsed;
         FolderSection.Visibility = kind == GridItemKind.Folder ? Visibility.Visible : Visibility.Collapsed;
         FileSection.Visibility = kind == GridItemKind.File ? Visibility.Visible : Visibility.Collapsed;
+        SystemSection.Visibility = kind == GridItemKind.System ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void KindCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -250,6 +255,26 @@ public partial class GridItemSettingsWindow : Window
                         : FileNameBox.Text.Trim(),
                     TargetPath = FilePathBox.Text.Trim(),
                     Arguments = FileArgsBox.Text.Trim(),
+                };
+                break;
+
+            case GridItemKind.System:
+                SystemAction action = SystemSearchRadio.IsChecked == true ? SystemAction.Search
+                    : SystemSettingsRadio.IsChecked == true ? SystemAction.Settings
+                    : SystemAction.None;
+                if (action == SystemAction.None)
+                {
+                    MessageBox.Show(this, "動作 (検索 / 設定) を選択してください。",
+                        "Muu", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                Result = new GridItem
+                {
+                    Row = _row,
+                    Column = _col,
+                    Kind = GridItemKind.System,
+                    SystemAction = action,
+                    Name = action == SystemAction.Search ? "検索" : "設定",
                 };
                 break;
         }

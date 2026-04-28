@@ -10,4 +10,10 @@ public enum GridItemKind
 
     /// <summary>An installed application picked from the Start Menu list.</summary>
     App,
+
+    /// <summary>
+    /// A built-in system action (search toggle, settings, ...).
+    /// The specific behaviour is selected via <see cref="GridItem.SystemAction"/>.
+    /// </summary>
+    System,
 }

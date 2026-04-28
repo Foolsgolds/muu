@@ -88,7 +88,14 @@ public partial class LauncherViewModel : ObservableObject
     {
         _config.SetItem(item);
         _config.Save();
+
+        // A slot is "occupied" if it's a registered file/folder/app (TargetPath
+        // present) OR a system slot (Search/Settings, no path).
+        bool occupied = (item.Kind == GridItemKind.System
+                         && item.SystemAction != SystemAction.None)
+                        || !string.IsNullOrWhiteSpace(item.TargetPath);
+
         var cell = GridCells[row * 5 + col];
-        cell.LoadFrom(string.IsNullOrWhiteSpace(item.TargetPath) ? null : item);
+        cell.LoadFrom(occupied ? item : null);
     }
 }
