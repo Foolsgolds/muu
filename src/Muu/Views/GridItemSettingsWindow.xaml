@@ -158,7 +158,6 @@
         <StackPanel DockPanel.Dock="Bottom"
                     Orientation="Horizontal" HorizontalAlignment="Right"
                     Margin="0,12,0,0">
-            <Button Content="クリア" Click="Clear_Click" Margin="0,0,8,0" />
             <Button Content="キャンセル" Click="Cancel_Click" Margin="0,0,8,0" />
             <Button Content="OK" Click="OK_Click" IsDefault="True" />
         </StackPanel>
@@ -176,6 +175,7 @@
                 <ComboBoxItem Content="アプリ" Tag="App" />
                 <ComboBoxItem Content="フォルダ" Tag="Folder" />
                 <ComboBoxItem Content="ファイル" Tag="File" />
+                <ComboBoxItem Content="なし (未登録)" Tag="None" />
             </ComboBox>
         </Grid>
 

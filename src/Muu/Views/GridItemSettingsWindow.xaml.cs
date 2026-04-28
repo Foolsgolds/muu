@@ -76,10 +76,14 @@ public partial class GridItemSettingsWindow : Window
     }
 
     // ─── Kind selection ──────────────────────────────────────
+    // The ComboBox additionally supports a "None" option used to clear the
+    // slot (replaces the old "Clear" button). It is represented internally
+    // as a null GridItemKind.
 
-    private void SelectKind(GridItemKind kind)
+    private void SelectKind(GridItemKind kind) => SelectKindByTag(kind.ToString());
+
+    private void SelectKindByTag(string tag)
     {
-        string tag = kind.ToString();
         foreach (ComboBoxItem item in KindCombo.Items)
         {
             if ((string?)item.Tag == tag)
@@ -88,20 +92,21 @@ public partial class GridItemSettingsWindow : Window
                 break;
             }
         }
-        UpdateSectionVisibility(kind);
+        UpdateSectionVisibility(CurrentKind());
     }
 
-    private GridItemKind CurrentKind()
+    /// <summary>Currently selected GridItemKind, or null if "None" is selected.</summary>
+    private GridItemKind? CurrentKind()
     {
-        if (KindCombo.SelectedItem is ComboBoxItem item && item.Tag is string tag
-            && Enum.TryParse(tag, out GridItemKind k))
+        if (KindCombo.SelectedItem is ComboBoxItem item && item.Tag is string tag)
         {
-            return k;
+            if (tag == "None") return null;
+            if (Enum.TryParse(tag, out GridItemKind k)) return k;
         }
         return GridItemKind.File;
     }
 
-    private void UpdateSectionVisibility(GridItemKind kind)
+    private void UpdateSectionVisibility(GridItemKind? kind)
     {
         AppSection.Visibility = kind == GridItemKind.App ? Visibility.Visible : Visibility.Collapsed;
         FolderSection.Visibility = kind == GridItemKind.Folder ? Visibility.Visible : Visibility.Collapsed;
@@ -173,11 +178,20 @@ public partial class GridItemSettingsWindow : Window
         }
     }
 
-    // ─── OK / Cancel / Clear ─────────────────────────────────
+    // ─── OK / Cancel ─────────────────────────────────────────
 
     private void OK_Click(object sender, RoutedEventArgs e)
     {
         var kind = CurrentKind();
+
+        // "なし (未登録)" — clear the slot
+        if (kind is null)
+        {
+            Cleared = true;
+            Result = new GridItem { Row = _row, Column = _col };
+            DialogResult = true;
+            return;
+        }
 
         switch (kind)
         {
@@ -246,12 +260,5 @@ public partial class GridItemSettingsWindow : Window
     private void Cancel_Click(object sender, RoutedEventArgs e)
     {
         DialogResult = false;
-    }
-
-    private void Clear_Click(object sender, RoutedEventArgs e)
-    {
-        Cleared = true;
-        Result = new GridItem { Row = _row, Column = _col };
-        DialogResult = true;
     }
 }
