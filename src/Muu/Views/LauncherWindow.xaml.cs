@@ -13,7 +13,8 @@ namespace Muu.Views;
 public partial class LauncherWindow : Window
 {
     private const int GridSize = 5;
-    private const int CenterIndex = 12; // row=2, col=2 in 5x5
+    private const int CenterIndex = 12;       // row=2, col=2 in 5x5 (drag handle)
+    private const int SearchToggleIndex = 20; // row=4, col=0 in 5x5 (search toggle)
     private const double CellSize = 48;
     private const double CellMargin = 4;
 
@@ -45,6 +46,14 @@ public partial class LauncherWindow : Window
             if (cell.IsCenter)
             {
                 AppGrid.Children.Add(CreateDragHandle());
+                continue;
+            }
+
+            if (idx == SearchToggleIndex)
+            {
+                var toggle = CreateSearchToggle();
+                _cellBorders[idx] = toggle;
+                AppGrid.Children.Add(toggle);
                 continue;
             }
 
@@ -95,6 +104,66 @@ public partial class LauncherWindow : Window
         };
 
         return handle;
+    }
+
+    private Border CreateSearchToggle()
+    {
+        var icon = new TextBlock
+        {
+            Text = "", // Search (magnifying glass) glyph
+            FontFamily = new FontFamily("Segoe Fluent Icons"),
+            FontSize = 22,
+            Foreground = (SolidColorBrush)FindResource("PrimaryTextBrush"),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            IsHitTestVisible = false,
+        };
+
+        var border = new Border
+        {
+            Width = CellSize,
+            Height = CellSize,
+            Margin = new Thickness(CellMargin),
+            CornerRadius = new CornerRadius(8),
+            Background = (SolidColorBrush)FindResource("CellBackgroundBrush"),
+            BorderBrush = (SolidColorBrush)FindResource("SubtleBorderBrush"),
+            BorderThickness = new Thickness(0.5),
+            Child = icon,
+            Cursor = Cursors.Hand,
+            ToolTip = "検索",
+            Effect = new DropShadowEffect
+            {
+                BlurRadius = 10,
+                ShadowDepth = 2,
+                Direction = 270,
+                Opacity = 0.35,
+                Color = Colors.Black,
+            },
+        };
+
+        var normalBg = (SolidColorBrush)FindResource("CellBackgroundBrush");
+        var hoverBg = (SolidColorBrush)FindResource("HoverItemBrush");
+        border.MouseEnter += (_, _) => border.Background = hoverBg;
+        border.MouseLeave += (_, _) => border.Background = normalBg;
+
+        border.MouseLeftButtonUp += (_, _) => ToggleSearch();
+
+        return border;
+    }
+
+    private void ToggleSearch()
+    {
+        if (SearchPanel.Visibility == Visibility.Visible)
+        {
+            SearchPanel.Visibility = Visibility.Collapsed;
+            ViewModel.ClearSearch();
+        }
+        else
+        {
+            SearchPanel.Visibility = Visibility.Visible;
+            QueryBox.Focus();
+            QueryBox.SelectAll();
+        }
     }
 
     private Border CreateCellButton(GridCellViewModel cell)
@@ -261,6 +330,14 @@ public partial class LauncherWindow : Window
     private void ActivateFocusedCell()
     {
         if (_focusedCellIndex < 0) return;
+
+        // Search-toggle slot: Enter toggles the search panel
+        if (_focusedCellIndex == SearchToggleIndex)
+        {
+            ToggleSearch();
+            return;
+        }
+
         var cell = ViewModel.GridCells[_focusedCellIndex];
         if (cell.HasItem)
         {
@@ -284,15 +361,23 @@ public partial class LauncherWindow : Window
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        // Escape always hides
+        // Escape: close search panel if visible, otherwise hide window
         if (e.Key == Key.Escape)
         {
-            HideWindow();
+            if (SearchPanel.Visibility == Visibility.Visible)
+            {
+                SearchPanel.Visibility = Visibility.Collapsed;
+                ViewModel.ClearSearch();
+            }
+            else
+            {
+                HideWindow();
+            }
             e.Handled = true;
             return;
         }
 
-        bool searching = ViewModel.Results.Count > 0;
+        bool searching = SearchPanel.Visibility == Visibility.Visible;
 
         if (searching)
         {
@@ -353,10 +438,14 @@ public partial class LauncherWindow : Window
     public void ShowWindow()
     {
         ViewModel.ClearSearch();
+        // Search panel is hidden by default each time the launcher appears
+        SearchPanel.Visibility = Visibility.Collapsed;
         PositionAtCursor();
         Show();
         Activate();
-        QueryBox.Focus();
+        // Give the window itself focus so global key handler runs;
+        // QueryBox will get focus only when the search panel is opened.
+        Focus();
 
         BeginAnimation(OpacityProperty, new DoubleAnimation
         {

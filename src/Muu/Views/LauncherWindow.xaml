@@ -35,6 +35,8 @@
                          Rows="5" Columns="5"
                          Width="280" Height="280" />
 
+            <!-- Search section (hidden by default; toggled by bottom-left cell) -->
+          <StackPanel x:Name="SearchPanel" Visibility="Collapsed">
             <!-- Search bar -->
             <Border Margin="0,8,0,0"
                     Padding="12,10"
@@ -96,6 +98,7 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
+          </StackPanel>
         </StackPanel>
     </Border>
 </Window>
