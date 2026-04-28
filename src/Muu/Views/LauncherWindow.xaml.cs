@@ -199,31 +199,64 @@ public partial class LauncherWindow : Window
             };
         }
 
+        var cellBg = (SolidColorBrush)FindResource("CellBackgroundBrush");
+        var hoverBg = (SolidColorBrush)FindResource("HoverItemBrush");
+        var subtleBorder = (SolidColorBrush)FindResource("SubtleBorderBrush");
+        // alpha=1 invisible brush keeps empty cells hit-testable while looking transparent
+        var invisibleBg = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0));
+
+        var shadow = new DropShadowEffect
+        {
+            BlurRadius = 10,
+            ShadowDepth = 2,
+            Direction = 270,
+            Opacity = 0.35,
+            Color = Colors.Black,
+        };
+
         var border = new Border
         {
             Width = CellSize,
             Height = CellSize,
             Margin = new Thickness(CellMargin),
             CornerRadius = new CornerRadius(8),
-            Background = (SolidColorBrush)FindResource("CellBackgroundBrush"),
-            BorderBrush = (SolidColorBrush)FindResource("SubtleBorderBrush"),
             BorderThickness = new Thickness(0.5),
             Child = content,
             Cursor = Cursors.Hand,
-            Effect = new DropShadowEffect
-            {
-                BlurRadius = 10,
-                ShadowDepth = 2,
-                Direction = 270,
-                Opacity = 0.35,
-                Color = Colors.Black,
-            },
         };
 
-        var normalBg = (SolidColorBrush)FindResource("CellBackgroundBrush");
-        var hoverBg = (SolidColorBrush)FindResource("HoverItemBrush");
-        border.MouseEnter += (_, _) => border.Background = hoverBg;
-        border.MouseLeave += (_, _) => border.Background = normalBg;
+        if (cell.HasItem)
+        {
+            // Registered cells always look like a card.
+            border.Background = cellBg;
+            border.BorderBrush = subtleBorder;
+            border.Effect = shadow;
+            border.MouseEnter += (_, _) => border.Background = hoverBg;
+            border.MouseLeave += (_, _) => border.Background = cellBg;
+        }
+        else
+        {
+            // Empty cells are invisible by default; on hover they reveal
+            // the same card chrome (white background + border + shadow + "+").
+            border.Background = invisibleBg;
+            border.BorderBrush = Brushes.Transparent;
+            content.Visibility = Visibility.Collapsed;
+
+            border.MouseEnter += (_, _) =>
+            {
+                border.Background = hoverBg;
+                border.BorderBrush = subtleBorder;
+                border.Effect = shadow;
+                content.Visibility = Visibility.Visible;
+            };
+            border.MouseLeave += (_, _) =>
+            {
+                border.Background = invisibleBg;
+                border.BorderBrush = Brushes.Transparent;
+                border.Effect = null;
+                content.Visibility = Visibility.Collapsed;
+            };
+        }
 
         border.MouseLeftButtonUp += (_, _) =>
         {
@@ -269,7 +302,7 @@ public partial class LauncherWindow : Window
         // Clear previous focus
         if (_focusedCellIndex >= 0 && _cellBorders[_focusedCellIndex] is { } prev)
         {
-            prev.BorderBrush = (SolidColorBrush)FindResource("SubtleBorderBrush");
+            prev.BorderBrush = DefaultBorderBrushFor(_focusedCellIndex);
             prev.BorderThickness = new Thickness(0.5);
         }
 
@@ -280,6 +313,18 @@ public partial class LauncherWindow : Window
             next.BorderBrush = SystemParameters.WindowGlassBrush ?? Brushes.DodgerBlue;
             next.BorderThickness = new Thickness(2);
         }
+    }
+
+    private Brush DefaultBorderBrushFor(int index)
+    {
+        // Empty user-cells render with a transparent border; the search-
+        // toggle and registered cells use the subtle border.
+        if (index != SearchToggleIndex && index >= 0 && index < ViewModel.GridCells.Length
+            && !ViewModel.GridCells[index].HasItem)
+        {
+            return Brushes.Transparent;
+        }
+        return (SolidColorBrush)FindResource("SubtleBorderBrush");
     }
 
     private static int Wrap(int v, int max)
