@@ -99,44 +99,35 @@ public partial class LauncherWindow : Window
 
     private Border CreateCellButton(GridCellViewModel cell)
     {
-        var icon = new Image
+        // Icon-only display (no label) so the icon can fill more of the cell.
+        FrameworkElement content;
+        if (cell.HasItem)
         {
-            Source = cell.Icon,
-            Width = 22,
-            Height = 22,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        RenderOptions.SetBitmapScalingMode(icon, BitmapScalingMode.HighQuality);
-
-        var label = new TextBlock
+            var icon = new Image
+            {
+                Source = cell.Icon,
+                Width = 32,
+                Height = 32,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                ToolTip = cell.Name,
+            };
+            RenderOptions.SetBitmapScalingMode(icon, BitmapScalingMode.HighQuality);
+            content = icon;
+        }
+        else
         {
-            Text = cell.Name,
-            FontSize = 8,
-            FontFamily = new FontFamily("Segoe UI Variable, Segoe UI"),
-            Foreground = (SolidColorBrush)FindResource("PrimaryTextBrush"),
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            TextAlignment = TextAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(2, 2, 2, 0),
-            MaxWidth = CellSize - 8,
-        };
-
-        var stack = new StackPanel
-        {
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        stack.Children.Add(icon);
-        stack.Children.Add(label);
-
-        if (!cell.HasItem)
-        {
-            icon.Visibility = Visibility.Collapsed;
-            label.Text = "+";
-            label.FontSize = 14;
-            label.Foreground = (SolidColorBrush)FindResource("TertiaryTextBrush");
-            label.Margin = new Thickness(0);
+            // Empty slot: keep the subtle "+" hint
+            content = new TextBlock
+            {
+                Text = "+",
+                FontSize = 18,
+                FontFamily = new FontFamily("Segoe UI Variable, Segoe UI"),
+                Foreground = (SolidColorBrush)FindResource("TertiaryTextBrush"),
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
         }
 
         var border = new Border
@@ -148,7 +139,7 @@ public partial class LauncherWindow : Window
             Background = (SolidColorBrush)FindResource("CellBackgroundBrush"),
             BorderBrush = (SolidColorBrush)FindResource("SubtleBorderBrush"),
             BorderThickness = new Thickness(0.5),
-            Child = stack,
+            Child = content,
             Cursor = Cursors.Hand,
             Effect = new DropShadowEffect
             {
