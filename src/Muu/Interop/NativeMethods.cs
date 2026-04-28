@@ -50,4 +50,40 @@ internal static partial class NativeMethods
 
     public const uint WM_NCLBUTTONDOWN = 0x00A1;
     public const int HTCAPTION = 2;
+
+    // Shell icon retrieval (works for files and folders).
+    // Uses the legacy DllImport because the SHFILEINFO struct contains
+    // inline strings, which the source-generated LibraryImport does not
+    // support.
+    [DllImport("shell32.dll", EntryPoint = "SHGetFileInfoW", CharSet = CharSet.Unicode)]
+    public static extern IntPtr SHGetFileInfo(
+        string pszPath,
+        uint dwFileAttributes,
+        ref SHFILEINFO psfi,
+        uint cbFileInfo,
+        uint uFlags);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct SHFILEINFO
+    {
+        public IntPtr hIcon;
+        public int iIcon;
+        public uint dwAttributes;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        public string szDisplayName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
+        public string szTypeName;
+    }
+
+    public const uint SHGFI_ICON = 0x000000100;
+    public const uint SHGFI_LARGEICON = 0x000000000;
+    public const uint SHGFI_SMALLICON = 0x000000001;
+    public const uint SHGFI_USEFILEATTRIBUTES = 0x000000010;
+
+    public const uint FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
+    public const uint FILE_ATTRIBUTE_NORMAL = 0x00000080;
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool DestroyIcon(IntPtr hIcon);
 }

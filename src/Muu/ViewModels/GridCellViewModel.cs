@@ -5,6 +5,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Muu.Interop;
 using Muu.Models;
 
 namespace Muu.ViewModels;
@@ -80,17 +81,38 @@ public partial class GridCellViewModel : ObservableObject
 
     private void LoadIcon(string path)
     {
+        Icon = null;
         try
         {
-            if (File.Exists(path))
+            bool isDirectory = Directory.Exists(path);
+            bool exists = isDirectory || File.Exists(path);
+
+            // Use SHGetFileInfo so we get proper icons for files AND folders.
+            uint attrs = isDirectory ? NativeMethods.FILE_ATTRIBUTE_DIRECTORY
+                                     : NativeMethods.FILE_ATTRIBUTE_NORMAL;
+            uint flags = NativeMethods.SHGFI_ICON | NativeMethods.SHGFI_LARGEICON;
+            // If the path doesn't exist, fall back to file-attribute-only mode so
+            // we still get a generic icon for the type.
+            if (!exists)
+                flags |= NativeMethods.SHGFI_USEFILEATTRIBUTES;
+
+            var info = default(NativeMethods.SHFILEINFO);
+            var result = NativeMethods.SHGetFileInfo(path, attrs, ref info,
+                (uint)System.Runtime.InteropServices.Marshal.SizeOf(info), flags);
+
+            if (result != IntPtr.Zero && info.hIcon != IntPtr.Zero)
             {
-                using var ico = System.Drawing.Icon.ExtractAssociatedIcon(path);
-                if (ico is not null)
+                try
                 {
-                    Icon = Imaging.CreateBitmapSourceFromHIcon(
-                        ico.Handle, Int32Rect.Empty,
+                    var bmp = Imaging.CreateBitmapSourceFromHIcon(
+                        info.hIcon, Int32Rect.Empty,
                         BitmapSizeOptions.FromEmptyOptions());
-                    ((BitmapSource)Icon).Freeze();
+                    bmp.Freeze();
+                    Icon = bmp;
+                }
+                finally
+                {
+                    NativeMethods.DestroyIcon(info.hIcon);
                 }
             }
         }
