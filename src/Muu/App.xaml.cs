@@ -124,7 +124,10 @@ public partial class App : Application
         menu.Items.Add(exitItem);
 
         _trayIcon.ContextMenu = menu;
-        _trayIcon.TrayMouseDoubleClick += (_, _) => _launcherWindow?.ShowWindow();
+        // Single left-click on the tray icon opens the settings dialog
+        // (matches the behaviour of the gear cell). The right-click menu
+        // still exposes "表示" / "終了".
+        _trayIcon.TrayLeftMouseUp += (_, _) => _launcherWindow?.OpenSettings();
     }
 
     protected override void OnExit(ExitEventArgs e)
