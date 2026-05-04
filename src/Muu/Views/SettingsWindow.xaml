@@ -97,6 +97,46 @@
                        FontSize="11"
                        TextWrapping="Wrap"
                        Margin="0,6,0,0" />
+
+            <!-- Separator -->
+            <Border Height="1"
+                    Background="{DynamicResource BorderBrush}"
+                    Margin="0,20,0,16" />
+
+            <TextBlock Text="セル配置"
+                       FontSize="14" FontWeight="SemiBold"
+                       Margin="0,0,0,8" />
+
+            <TextBlock Text="セルをドラッグ＆ドロップして位置を入れ替えできます。中央のセル (移動ハンドル) は固定です。"
+                       Foreground="{DynamicResource SecondaryFg}"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,10" />
+
+            <!-- Mini grid (cells populated in code-behind) -->
+            <Border HorizontalAlignment="Center"
+                    Background="{DynamicResource ListBg}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="6">
+                <Grid x:Name="MiniGrid">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                </Grid>
+            </Border>
         </StackPanel>
     </DockPanel>
 </Window>

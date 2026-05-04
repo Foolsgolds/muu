@@ -98,4 +98,47 @@ public partial class LauncherViewModel : ObservableObject
         var cell = GridCells[row * 5 + col];
         cell.LoadFrom(occupied ? item : null);
     }
+
+    /// <summary>
+    /// Swap the contents of two grid slots (used by the settings dialog
+    /// drag-and-drop). The center cell (drag handle) is not swappable.
+    /// </summary>
+    public void SwapCells(int idx1, int idx2)
+    {
+        if (idx1 == idx2) return;
+        if (idx1 == 12 || idx2 == 12) return; // center is non-swappable
+        if (idx1 < 0 || idx2 < 0 || idx1 >= 25 || idx2 >= 25) return;
+
+        int row1 = idx1 / 5, col1 = idx1 % 5;
+        int row2 = idx2 / 5, col2 = idx2 % 5;
+
+        var cell1 = GridCells[idx1];
+        var cell2 = GridCells[idx2];
+
+        GridItem? item1 = cell1.HasItem ? cell1.ToGridItem() : null;
+        GridItem? item2 = cell2.HasItem ? cell2.ToGridItem() : null;
+
+        // Reassign positions before persisting
+        if (item1 is not null)
+        {
+            item1.Row = row2;
+            item1.Column = col2;
+        }
+        if (item2 is not null)
+        {
+            item2.Row = row1;
+            item2.Column = col1;
+        }
+
+        // Clear both slots in config first, then re-add (SetItem dedupes by position).
+        _config.SetItem(new GridItem { Row = row1, Column = col1 });
+        _config.SetItem(new GridItem { Row = row2, Column = col2 });
+        if (item2 is not null) _config.SetItem(item2);
+        if (item1 is not null) _config.SetItem(item1);
+        _config.Save();
+
+        // Reload cell view-models so visuals update
+        cell1.LoadFrom(item2);
+        cell2.LoadFrom(item1);
+    }
 }

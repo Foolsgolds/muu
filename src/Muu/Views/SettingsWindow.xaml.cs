@@ -1,19 +1,37 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Effects;
+using System.Windows.Shapes;
 using Muu.Infrastructure;
 using Muu.Models;
+using Muu.ViewModels;
 
 namespace Muu.Views;
 
 public partial class SettingsWindow : Window
 {
+    private const int CenterIndex = 12;
+    private const double MiniCellSize = 40;
+    private const string DragDataFormat = "Muu.GridCellIndex";
+
     private HotkeyModifiers _capturedMods;
     private uint _capturedVk;
     private bool _captured;
 
-    public SettingsWindow()
+    private readonly LauncherViewModel? _launcherVm;
+    private readonly Action? _onLayoutChanged;
+    private readonly Border?[] _miniCells = new Border?[25];
+
+    public SettingsWindow() : this(null, null) { }
+
+    public SettingsWindow(LauncherViewModel? launcherVm, Action? onLayoutChanged)
     {
         InitializeComponent();
+
+        _launcherVm = launcherVm;
+        _onLayoutChanged = onLayoutChanged;
 
         var s = App.Instance.Settings;
         _capturedMods = s.HotkeyModifiers;
@@ -21,11 +39,208 @@ public partial class SettingsWindow : Window
         _captured = true;
         UpdateDisplay();
 
-        // Reflect the current Run-key state in the auto-start checkbox.
         AutoStartCheckBox.IsChecked = StartupRegistration.IsRegistered();
 
-        Loaded += (_, _) => ThemeHelper.Apply(this);
+        Loaded += (_, _) =>
+        {
+            ThemeHelper.Apply(this);
+            BuildMiniGrid();
+        };
     }
+
+    // ─── Mini grid (drag & drop layout editor) ───────────────
+
+    private void BuildMiniGrid()
+    {
+        if (_launcherVm is null) return;
+
+        MiniGrid.Children.Clear();
+        for (int i = 0; i < _miniCells.Length; i++) _miniCells[i] = null;
+
+        for (int idx = 0; idx < 25; idx++)
+        {
+            int row = idx / 5;
+            int col = idx % 5;
+
+            Border cellUi;
+            if (idx == CenterIndex)
+            {
+                cellUi = CreateCenterPlaceholder();
+            }
+            else
+            {
+                cellUi = CreateMiniCell(idx, _launcherVm.GridCells[idx]);
+            }
+
+            cellUi.Width = MiniCellSize;
+            cellUi.Height = MiniCellSize;
+            cellUi.Margin = new Thickness(3);
+            Grid.SetRow(cellUi, row);
+            Grid.SetColumn(cellUi, col);
+            MiniGrid.Children.Add(cellUi);
+            _miniCells[idx] = cellUi;
+        }
+    }
+
+    private Border CreateCenterPlaceholder()
+    {
+        var icon = new System.Windows.Controls.Image
+        {
+            Source = new System.Windows.Media.Imaging.BitmapImage(
+                new Uri("pack://application:,,,/Assets/muu-icon.png", UriKind.Absolute)),
+            Width = 26,
+            Height = 26,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            IsHitTestVisible = false,
+            Opacity = 0.6,
+        };
+
+        return new Border
+        {
+            Background = (SolidColorBrush)FindResource("ListBg"),
+            BorderBrush = (SolidColorBrush)FindResource("BorderBrush"),
+            BorderThickness = new Thickness(0.5),
+            CornerRadius = new CornerRadius(6),
+            Child = icon,
+            ToolTip = "中央セル (移動ハンドル) は変更できません",
+        };
+    }
+
+    private Border CreateMiniCell(int idx, GridCellViewModel cell)
+    {
+        FrameworkElement content;
+        if (cell.IsSystem)
+        {
+            string glyph = cell.SystemAction switch
+            {
+                SystemAction.Search => "",   // search
+                SystemAction.Settings => "", // gear
+                _ => "?",
+            };
+            content = new TextBlock
+            {
+                Text = glyph,
+                FontFamily = new FontFamily("Segoe Fluent Icons"),
+                FontSize = 18,
+                Foreground = (SolidColorBrush)FindResource("PrimaryFg"),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                IsHitTestVisible = false,
+            };
+        }
+        else if (cell.HasItem && cell.Icon is not null)
+        {
+            var img = new System.Windows.Controls.Image
+            {
+                Source = cell.Icon,
+                Width = 24, Height = 24,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                IsHitTestVisible = false,
+            };
+            RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+            content = img;
+        }
+        else
+        {
+            // Empty slot
+            content = new TextBlock
+            {
+                Text = "+",
+                FontSize = 14,
+                Foreground = (SolidColorBrush)FindResource("SecondaryFg"),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                IsHitTestVisible = false,
+            };
+        }
+
+        var border = new Border
+        {
+            Background = (SolidColorBrush)FindResource("ControlBg"),
+            BorderBrush = (SolidColorBrush)FindResource("BorderBrush"),
+            BorderThickness = new Thickness(0.5),
+            CornerRadius = new CornerRadius(6),
+            Child = content,
+            Cursor = Cursors.Hand,
+            AllowDrop = true,
+            ToolTip = string.IsNullOrWhiteSpace(cell.Name) ? "(空き)" : cell.Name,
+        };
+
+        // Drag-source
+        Point dragStart = default;
+        bool dragArmed = false;
+
+        border.PreviewMouseLeftButtonDown += (s, e) =>
+        {
+            dragStart = e.GetPosition(this);
+            dragArmed = true;
+        };
+
+        border.PreviewMouseMove += (s, e) =>
+        {
+            if (!dragArmed || e.LeftButton != MouseButtonState.Pressed) return;
+
+            var pos = e.GetPosition(this);
+            if (Math.Abs(pos.X - dragStart.X) < SystemParameters.MinimumHorizontalDragDistance
+                && Math.Abs(pos.Y - dragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
+                return;
+
+            dragArmed = false;
+            DragDrop.DoDragDrop(border, new DataObject(DragDataFormat, idx), DragDropEffects.Move);
+        };
+
+        border.PreviewMouseLeftButtonUp += (_, _) => dragArmed = false;
+
+        // Drop-target
+        border.DragOver += (_, e) =>
+        {
+            if (e.Data.GetDataPresent(DragDataFormat))
+            {
+                int srcIdx = (int)e.Data.GetData(DragDataFormat);
+                e.Effects = (srcIdx == idx || srcIdx == CenterIndex || idx == CenterIndex)
+                    ? DragDropEffects.None
+                    : DragDropEffects.Move;
+                border.BorderBrush = e.Effects == DragDropEffects.Move
+                    ? (SystemParameters.WindowGlassBrush ?? Brushes.DodgerBlue)
+                    : (SolidColorBrush)FindResource("BorderBrush");
+                border.BorderThickness = e.Effects == DragDropEffects.Move
+                    ? new Thickness(2)
+                    : new Thickness(0.5);
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
+        };
+
+        border.DragLeave += (_, _) =>
+        {
+            border.BorderBrush = (SolidColorBrush)FindResource("BorderBrush");
+            border.BorderThickness = new Thickness(0.5);
+        };
+
+        border.Drop += (_, e) =>
+        {
+            border.BorderBrush = (SolidColorBrush)FindResource("BorderBrush");
+            border.BorderThickness = new Thickness(0.5);
+
+            if (!e.Data.GetDataPresent(DragDataFormat)) return;
+            int srcIdx = (int)e.Data.GetData(DragDataFormat);
+            if (srcIdx == idx || _launcherVm is null) return;
+
+            _launcherVm.SwapCells(srcIdx, idx);
+            _onLayoutChanged?.Invoke();
+            BuildMiniGrid(); // refresh preview
+            e.Handled = true;
+        };
+
+        return border;
+    }
+
+    // ─── Hotkey ──────────────────────────────────────────────
 
     private void UpdateDisplay()
     {
@@ -46,7 +261,6 @@ public partial class SettingsWindow : Window
 
     private void HotkeyBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        // Allow Tab/Esc/Enter to pass through for normal navigation when no modifiers held
         if (e.KeyboardDevice.Modifiers == ModifierKeys.None
             && (e.Key is Key.Tab or Key.Escape or Key.Enter))
         {
@@ -55,10 +269,8 @@ public partial class SettingsWindow : Window
 
         e.Handled = true;
 
-        // Get the actual key (handle System key for Alt combinations)
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
 
-        // Modifier-only press: don't accept yet, but show partial state
         if (HotkeyDisplay.IsModifierKey(key))
         {
             var mods = HotkeyDisplay.FromWpfModifiers(e.KeyboardDevice.Modifiers);
@@ -66,7 +278,6 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        // Capture full combination
         _capturedMods = HotkeyDisplay.FromWpfModifiers(e.KeyboardDevice.Modifiers);
         _capturedVk = HotkeyDisplay.KeyToVk(key);
         _captured = true;
@@ -80,6 +291,8 @@ public partial class SettingsWindow : Window
         _captured = true;
         UpdateDisplay();
     }
+
+    // ─── OK / Cancel ─────────────────────────────────────────
 
     private void OK_Click(object sender, RoutedEventArgs e)
     {
@@ -98,7 +311,6 @@ public partial class SettingsWindow : Window
         s.HotkeyModifiers = _capturedMods;
         s.HotkeyVirtualKey = _capturedVk;
 
-        // Apply, and roll back if registration fails (e.g. combination in use elsewhere)
         if (!App.Instance.ReapplyHotkey())
         {
             s.HotkeyModifiers = prevMods;
@@ -112,7 +324,6 @@ public partial class SettingsWindow : Window
 
         s.Save();
 
-        // Apply the auto-start preference (registers/removes the HKCU Run entry).
         if (AutoStartCheckBox.IsChecked == true)
             StartupRegistration.Register();
         else

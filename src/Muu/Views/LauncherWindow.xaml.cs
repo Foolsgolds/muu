@@ -187,9 +187,16 @@ public partial class LauncherWindow : Window
 
     public void OpenSettings()
     {
-        var dlg = new SettingsWindow();
+        // Pass our ViewModel so the dialog can edit slot layout, and a
+        // callback so grid rearrangements show up immediately if the
+        // launcher is currently visible.
+        var dlg = new SettingsWindow(ViewModel, BuildGrid);
         if (IsVisible) dlg.Owner = this;
         dlg.ShowDialog();
+        // Always rebuild after the dialog closes — ensures changes made
+        // via the layout editor are reflected next time the launcher
+        // appears.
+        BuildGrid();
     }
 
     private Border CreateCellButton(GridCellViewModel cell)
@@ -515,6 +522,8 @@ public partial class LauncherWindow : Window
         ViewModel.ClearSearch();
         // Search panel is hidden by default each time the launcher appears
         SearchPanel.Visibility = Visibility.Collapsed;
+        // Refresh the grid so layout changes made while hidden are visible
+        BuildGrid();
         PositionAtCursor();
         Show();
         Activate();
