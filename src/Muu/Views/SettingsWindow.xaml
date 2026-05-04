@@ -76,6 +76,27 @@
                        FontSize="11"
                        TextWrapping="Wrap"
                        Margin="0,8,0,0" />
+
+            <!-- Separator -->
+            <Border Height="1"
+                    Background="{DynamicResource BorderBrush}"
+                    Margin="0,20,0,16" />
+
+            <TextBlock Text="スタートアップ"
+                       FontSize="14" FontWeight="SemiBold"
+                       Margin="0,0,0,8" />
+
+            <CheckBox x:Name="AutoStartCheckBox"
+                      Content="Windows サインイン時に Muu を自動起動する"
+                      Foreground="{DynamicResource PrimaryFg}"
+                      FontFamily="Segoe UI Variable, Segoe UI"
+                      FontSize="13" />
+
+            <TextBlock Text="有効にすると、Windows の「設定 → アプリ → スタートアップ」一覧に Muu が登録されます。"
+                       Foreground="{DynamicResource SecondaryFg}"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       Margin="0,6,0,0" />
         </StackPanel>
     </DockPanel>
 </Window>

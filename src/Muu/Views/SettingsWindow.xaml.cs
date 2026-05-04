@@ -21,6 +21,9 @@ public partial class SettingsWindow : Window
         _captured = true;
         UpdateDisplay();
 
+        // Reflect the current Run-key state in the auto-start checkbox.
+        AutoStartCheckBox.IsChecked = StartupRegistration.IsRegistered();
+
         Loaded += (_, _) => ThemeHelper.Apply(this);
     }
 
@@ -108,6 +111,13 @@ public partial class SettingsWindow : Window
         }
 
         s.Save();
+
+        // Apply the auto-start preference (registers/removes the HKCU Run entry).
+        if (AutoStartCheckBox.IsChecked == true)
+            StartupRegistration.Register();
+        else
+            StartupRegistration.Unregister();
+
         DialogResult = true;
     }
 
