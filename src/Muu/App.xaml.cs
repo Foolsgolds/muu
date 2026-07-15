@@ -62,9 +62,11 @@ public partial class App : Application
             _hotkeyManager.Register(hwnd, (uint)Settings.HotkeyModifiers, Settings.HotkeyVirtualKey);
         };
 
-        // Show once to initialize, then hide
-        _launcherWindow.Show();
-        _launcherWindow.Hide();
+        // Create the HWND without ever showing the window. This raises
+        // SourceInitialized (registering the hotkey) but avoids the
+        // Show()/Hide() startup flash where the window briefly painted
+        // at full opacity before being hidden.
+        new WindowInteropHelper(_launcherWindow).EnsureHandle();
     }
 
     /// <summary>
@@ -88,7 +90,11 @@ public partial class App : Application
     {
         if (_launcherWindow is null) return;
 
-        if (_launcherWindow.IsVisible)
+        // Use the logical shown state, not IsVisible: Hide() is deferred
+        // behind the fade-out animation, so IsVisible stays true for ~100ms
+        // after HideWindow and would make this toggle hide again when the
+        // user actually wants to show.
+        if (_launcherWindow.IsLauncherShown)
             _launcherWindow.HideWindow();
         else
             _launcherWindow.ShowWindow();

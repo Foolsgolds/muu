@@ -21,6 +21,16 @@ public partial class LauncherWindow : Window
     private readonly Border?[] _cellBorders = new Border?[GridSize * GridSize];
     private int _focusedCellIndex = -1;
 
+    // Logical visibility. Hide() is deferred behind a fade-out animation, so
+    // IsVisible alone is stale while fading; this flag tracks intent.
+    private bool _isShown;
+    // Bumped on every ShowWindow so a stale fade-out's Completed handler
+    // (already queued on the dispatcher) can't Hide() the freshly shown window.
+    private int _showGeneration;
+
+    /// <summary>Logical shown state (true from ShowWindow until HideWindow).</summary>
+    public bool IsLauncherShown => _isShown;
+
     private LauncherViewModel ViewModel => (LauncherViewModel)DataContext;
 
     public LauncherWindow()
@@ -438,7 +448,17 @@ public partial class LauncherWindow : Window
 
     private void Window_Deactivated(object sender, EventArgs e)
     {
-        HideWindow();
+        if (!_isShown) return;
+
+        // Focus can bounce for a moment while Show()/Activate() settle
+        // (Topmost + ShowInTaskbar=False windows are prone to this). Defer
+        // the check and only hide if the window is still inactive once the
+        // current message batch has been processed.
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (_isShown && !IsActive)
+                HideWindow();
+        }), System.Windows.Threading.DispatcherPriority.Background);
     }
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -519,13 +539,30 @@ public partial class LauncherWindow : Window
 
     public void ShowWindow()
     {
+        _showGeneration++;
+        _isShown = true;
+
         ViewModel.ClearSearch();
         // Search panel is hidden by default each time the launcher appears
         SearchPanel.Visibility = Visibility.Collapsed;
         // Refresh the grid so layout changes made while hidden are visible
         BuildGrid();
         PositionAtCursor();
+
+        // Clear any leftover opacity animation and force Opacity to 0 BEFORE
+        // Show(). Show()/Activate() pump messages and can paint a frame, so
+        // showing at the previous opacity and only then starting a From=0
+        // animation produced a visible show → hide → show flicker.
+        BeginAnimation(OpacityProperty, null);
+        Opacity = 0;
+
         Show();
+        // Reposition after Show: on the very first Show the handle (created
+        // via EnsureHandle, never displayed) doesn't yet carry the target
+        // monitor's DPI, so the pre-Show calculation can land off-target.
+        // The window is still at Opacity 0 here, so the correction is
+        // invisible.
+        PositionAtCursor();
         Activate();
         // Give the window itself focus so global key handler runs;
         // QueryBox will get focus only when the search panel is opened.
@@ -541,13 +578,23 @@ public partial class LauncherWindow : Window
 
     public void HideWindow()
     {
+        if (!_isShown) return; // already hiding or hidden
+        _isShown = false;
+
+        int generation = _showGeneration;
         var anim = new DoubleAnimation
         {
             From = 1, To = 0,
             Duration = TimeSpan.FromMilliseconds(100),
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
         };
-        anim.Completed += (_, _) => Hide();
+        anim.Completed += (_, _) =>
+        {
+            // Skip if a newer ShowWindow started after this fade-out began —
+            // otherwise the deferred Hide() would blank the re-shown window.
+            if (generation == _showGeneration)
+                Hide();
+        };
         BeginAnimation(OpacityProperty, anim);
     }
 
