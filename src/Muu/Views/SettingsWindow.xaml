@@ -2,8 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Muu - 設定"
-        Width="480"
-        SizeToContent="Height"
+        Width="480" Height="470"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Background="{DynamicResource WindowBg}">
@@ -11,6 +10,7 @@
     <Window.Resources>
         <SolidColorBrush x:Key="WindowBg" Color="#F3F3F3" />
         <SolidColorBrush x:Key="ControlBg" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ListBg" Color="#F8F8F8" />
         <SolidColorBrush x:Key="BorderBrush" Color="#D0D0D0" />
         <SolidColorBrush x:Key="PrimaryFg" Color="#1F1F1F" />
         <SolidColorBrush x:Key="SecondaryFg" Color="#666666" />
@@ -42,101 +42,194 @@
             <Setter Property="Padding" Value="14,6" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
+
+        <!-- Theme-aware TabControl / TabItem -->
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Bd"
+                                Background="Transparent"
+                                BorderThickness="0,0,0,2"
+                                BorderBrush="Transparent"
+                                Padding="14,8">
+                            <ContentPresenter ContentSource="Header"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextBlock.Foreground="{DynamicResource SecondaryFg}"
+                                              x:Name="HeaderPresenter" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush"
+                                        Value="{DynamicResource PrimaryFg}" />
+                                <Setter TargetName="HeaderPresenter"
+                                        Property="TextBlock.Foreground"
+                                        Value="{DynamicResource PrimaryFg}" />
+                                <Setter TargetName="HeaderPresenter"
+                                        Property="TextBlock.FontWeight"
+                                        Value="SemiBold" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="HeaderPresenter"
+                                        Property="TextBlock.Foreground"
+                                        Value="{DynamicResource PrimaryFg}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
-    <DockPanel Margin="20,16">
-        <!-- Buttons -->
+    <DockPanel Margin="20,12,20,16">
+        <!-- Buttons (bottom) -->
         <StackPanel DockPanel.Dock="Bottom"
                     Orientation="Horizontal" HorizontalAlignment="Right"
-                    Margin="0,16,0,0">
-            <Button Content="既定値に戻す" Click="ResetDefault_Click" Margin="0,0,8,0" />
+                    Margin="0,12,0,0">
             <Button Content="キャンセル" Click="Cancel_Click" Margin="0,0,8,0" />
             <Button Content="OK" Click="OK_Click" IsDefault="True" />
         </StackPanel>
 
-        <StackPanel>
-            <TextBlock Text="起動コマンド (グローバルホットキー)"
-                       FontSize="14" FontWeight="SemiBold"
-                       Margin="0,0,0,8" />
+        <TabControl>
+            <!-- ============= セル配置 ============= -->
+            <TabItem Header="セル配置">
+                <StackPanel Margin="4,0" VerticalAlignment="Center">
+                    <TextBlock Text="セルをドラッグ＆ドロップして位置を入れ替えできます。中央のセル (移動ハンドル) は固定です。"
+                               Foreground="{DynamicResource SecondaryFg}"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,12" />
 
-            <TextBlock Text="入力欄をクリックして、設定したいキーの組み合わせを押してください。"
-                       Foreground="{DynamicResource SecondaryFg}"
-                       FontSize="11"
-                       TextWrapping="Wrap"
-                       Margin="0,0,0,8" />
+                    <!-- Mini grid (cells populated in code-behind) -->
+                    <Border HorizontalAlignment="Center"
+                            Background="{DynamicResource ListBg}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="6">
+                        <Grid x:Name="MiniGrid">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </TabItem>
 
-            <TextBox x:Name="HotkeyBox"
-                     PreviewKeyDown="HotkeyBox_PreviewKeyDown"
-                     GotFocus="HotkeyBox_GotFocus"
-                     LostFocus="HotkeyBox_LostFocus"
-                     IsReadOnlyCaretVisible="False" />
+            <!-- ============= 起動 ============= -->
+            <TabItem Header="起動">
+                <StackPanel Margin="4,16,4,0">
+                    <TextBlock Text="起動コマンド (グローバルホットキー)"
+                               FontSize="14" FontWeight="SemiBold"
+                               Margin="0,0,0,8" />
 
-            <TextBlock x:Name="StatusText"
-                       Foreground="{DynamicResource SecondaryFg}"
-                       FontSize="11"
-                       TextWrapping="Wrap"
-                       Margin="0,8,0,0" />
+                    <TextBlock Text="入力欄をクリックして、設定したいキーの組み合わせを押してください。"
+                               Foreground="{DynamicResource SecondaryFg}"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,8" />
 
-            <!-- Separator -->
-            <Border Height="1"
-                    Background="{DynamicResource BorderBrush}"
-                    Margin="0,20,0,16" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right"
+                                Content="既定値に戻す"
+                                Click="ResetDefault_Click"
+                                Margin="8,0,0,0"
+                                VerticalAlignment="Center" />
+                        <TextBox x:Name="HotkeyBox"
+                                 PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                                 GotFocus="HotkeyBox_GotFocus"
+                                 LostFocus="HotkeyBox_LostFocus"
+                                 IsReadOnlyCaretVisible="False" />
+                    </DockPanel>
 
-            <TextBlock Text="スタートアップ"
-                       FontSize="14" FontWeight="SemiBold"
-                       Margin="0,0,0,8" />
+                    <TextBlock x:Name="StatusText"
+                               Foreground="{DynamicResource SecondaryFg}"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Margin="0,8,0,0" />
 
-            <CheckBox x:Name="AutoStartCheckBox"
-                      Content="Windows サインイン時に Muu を自動起動する"
-                      Foreground="{DynamicResource PrimaryFg}"
-                      FontFamily="Segoe UI Variable, Segoe UI"
-                      FontSize="13" />
+                    <!-- Separator -->
+                    <Border Height="1"
+                            Background="{DynamicResource BorderBrush}"
+                            Margin="0,20,0,16" />
 
-            <TextBlock Text="有効にすると、Windows の「設定 → アプリ → スタートアップ」一覧に Muu が登録されます。"
-                       Foreground="{DynamicResource SecondaryFg}"
-                       FontSize="11"
-                       TextWrapping="Wrap"
-                       Margin="0,6,0,0" />
+                    <TextBlock Text="スタートアップ"
+                               FontSize="14" FontWeight="SemiBold"
+                               Margin="0,0,0,8" />
 
-            <!-- Separator -->
-            <Border Height="1"
-                    Background="{DynamicResource BorderBrush}"
-                    Margin="0,20,0,16" />
+                    <CheckBox x:Name="AutoStartCheckBox"
+                              Content="Windows サインイン時に Muu を自動起動する"
+                              Foreground="{DynamicResource PrimaryFg}"
+                              FontFamily="Segoe UI Variable, Segoe UI"
+                              FontSize="13" />
 
-            <TextBlock Text="セル配置"
-                       FontSize="14" FontWeight="SemiBold"
-                       Margin="0,0,0,8" />
+                    <TextBlock Text="有効にすると、Windows の「設定 → アプリ → スタートアップ」一覧に Muu が登録されます。"
+                               Foreground="{DynamicResource SecondaryFg}"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Margin="0,6,0,0" />
+                </StackPanel>
+            </TabItem>
 
-            <TextBlock Text="セルをドラッグ＆ドロップして位置を入れ替えできます。中央のセル (移動ハンドル) は固定です。"
-                       Foreground="{DynamicResource SecondaryFg}"
-                       FontSize="11"
-                       TextWrapping="Wrap"
-                       Margin="0,0,0,10" />
+            <!-- ============= 情報 ============= -->
+            <TabItem Header="情報">
+                <StackPanel Margin="4,24,4,0" HorizontalAlignment="Center">
+                    <Image Source="pack://application:,,,/Assets/muu-icon.png"
+                           Width="72" Height="72"
+                           HorizontalAlignment="Center"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
 
-            <!-- Mini grid (cells populated in code-behind) -->
-            <Border HorizontalAlignment="Center"
-                    Background="{DynamicResource ListBg}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="6">
-                <Grid x:Name="MiniGrid">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                </Grid>
-            </Border>
-        </StackPanel>
+                    <TextBlock Text="Muu"
+                               FontSize="22" FontWeight="SemiBold"
+                               HorizontalAlignment="Center"
+                               Margin="0,12,0,4" />
+
+                    <TextBlock x:Name="VersionText"
+                               Text="Version -"
+                               FontSize="13"
+                               Foreground="{DynamicResource SecondaryFg}"
+                               HorizontalAlignment="Center" />
+
+                    <TextBlock Text="Windows 11 grid launcher — 霧 (む) → muu"
+                               FontSize="12"
+                               Foreground="{DynamicResource SecondaryFg}"
+                               HorizontalAlignment="Center"
+                               Margin="0,10,0,0" />
+
+                    <TextBlock HorizontalAlignment="Center" Margin="0,14,0,0" FontSize="12">
+                        <Hyperlink NavigateUri="https://github.com/Foolsgolds/muu"
+                                   RequestNavigate="Hyperlink_RequestNavigate">
+                            GitHub — Foolsgolds/muu
+                        </Hyperlink>
+                    </TextBlock>
+
+                    <TextBlock Text="Copyright (c) 2026 foolsgold — MIT License"
+                               FontSize="11"
+                               Foreground="{DynamicResource SecondaryFg}"
+                               HorizontalAlignment="Center"
+                               Margin="0,16,0,0" />
+                </StackPanel>
+            </TabItem>
+        </TabControl>
     </DockPanel>
 </Window>

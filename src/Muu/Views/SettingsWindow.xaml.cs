@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -41,11 +42,46 @@ public partial class SettingsWindow : Window
 
         AutoStartCheckBox.IsChecked = StartupRegistration.IsRegistered();
 
+        VersionText.Text = $"Version {GetVersionString()}";
+
         Loaded += (_, _) =>
         {
             ThemeHelper.Apply(this);
             BuildMiniGrid();
         };
+    }
+
+    private static string GetVersionString()
+    {
+        var asm = System.Reflection.Assembly.GetExecutingAssembly();
+
+        // Prefer the informational version (matches <Version> in the csproj);
+        // strip any "+<commit>" build-metadata suffix the SDK may append.
+        string? info = asm
+            .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+        if (!string.IsNullOrEmpty(info))
+        {
+            int plus = info.IndexOf('+');
+            return plus > 0 ? info[..plus] : info;
+        }
+
+        return asm.GetName().Version?.ToString(3) ?? "-";
+    }
+
+    private void Hyperlink_RequestNavigate(object sender,
+        System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = e.Uri.AbsoluteUri,
+                UseShellExecute = true,
+            });
+        }
+        catch { }
+        e.Handled = true;
     }
 
     // ─── Mini grid (drag & drop layout editor) ───────────────
