@@ -24,6 +24,12 @@ public sealed class AppSettings
     /// <summary>Win32 virtual key code for the global hotkey (default: 'M' = 0x4D).</summary>
     public uint HotkeyVirtualKey { get; set; } = NativeMethods.VK_M;
 
+    /// <summary>
+    /// When true, show/hide diagnostics are appended to %TEMP%\muu.log.
+    /// Toggled from the settings dialog; off by default.
+    /// </summary>
+    public bool DebugLogging { get; set; }
+
     private static readonly string ConfigDir =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Muu");
     private static readonly string ConfigPath = Path.Combine(ConfigDir, "settings.json");

@@ -5,6 +5,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
+using Muu.Infrastructure;
 using Muu.Interop;
 using Muu.Models;
 using Muu.ViewModels;
@@ -448,6 +449,7 @@ public partial class LauncherWindow : Window
 
     private void Window_Deactivated(object sender, EventArgs e)
     {
+        Log.Write($"Deactivated: fired (isShown={_isShown})");
         if (!_isShown) return;
 
         // Focus can bounce for a moment while Show()/Activate() settle
@@ -456,6 +458,7 @@ public partial class LauncherWindow : Window
         // current message batch has been processed.
         Dispatcher.BeginInvoke(new Action(() =>
         {
+            Log.Write($"Deactivated: deferred check (isShown={_isShown}, IsActive={IsActive})");
             if (_isShown && !IsActive)
                 HideWindow();
         }), System.Windows.Threading.DispatcherPriority.Background);
@@ -541,6 +544,7 @@ public partial class LauncherWindow : Window
     {
         _showGeneration++;
         _isShown = true;
+        Log.Write($"ShowWindow: begin (gen={_showGeneration}, IsVisible={IsVisible}, Opacity={Opacity:F3})");
 
         ViewModel.ClearSearch();
         // Search panel is hidden by default each time the launcher appears
@@ -557,6 +561,7 @@ public partial class LauncherWindow : Window
         Opacity = 0;
 
         Show();
+        Log.Write($"ShowWindow: after Show() (Opacity={Opacity:F3}, IsActive={IsActive})");
         // Reposition after Show: on the very first Show the handle (created
         // via EnsureHandle, never displayed) doesn't yet carry the target
         // monitor's DPI, so the pre-Show calculation can land off-target.
@@ -567,6 +572,7 @@ public partial class LauncherWindow : Window
         // Give the window itself focus so global key handler runs;
         // QueryBox will get focus only when the search panel is opened.
         Focus();
+        Log.Write($"ShowWindow: after Activate/Focus (IsActive={IsActive})");
 
         BeginAnimation(OpacityProperty, new DoubleAnimation
         {
@@ -574,10 +580,40 @@ public partial class LauncherWindow : Window
             Duration = TimeSpan.FromMilliseconds(150),
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
         });
+        Log.Write("ShowWindow: fade-in animation attached");
+        StartRenderTrace();
+    }
+
+    // ─── Debug render tracing (active only when Log.Enabled) ────
+
+    private int _traceFramesLeft;
+    private DateTime _traceStart;
+
+    private void StartRenderTrace()
+    {
+        if (!Log.Enabled) return;
+        _traceFramesLeft = 30;
+        _traceStart = DateTime.Now;
+        CompositionTarget.Rendering -= OnRenderTrace;
+        CompositionTarget.Rendering += OnRenderTrace;
+    }
+
+    private void OnRenderTrace(object? sender, EventArgs e)
+    {
+        double ms = (DateTime.Now - _traceStart).TotalMilliseconds;
+        Log.Write($"frame +{ms,6:F1}ms: Opacity={Opacity:F3} IsVisible={IsVisible} IsActive={IsActive} Pos=({Left:F0},{Top:F0})");
+        if (--_traceFramesLeft <= 0)
+            CompositionTarget.Rendering -= OnRenderTrace;
     }
 
     public void HideWindow()
     {
+        if (Log.Enabled)
+        {
+            var caller = new System.Diagnostics.StackTrace(1, false).GetFrame(0)?.GetMethod()?.Name ?? "?";
+            Log.Write($"HideWindow: called (isShown={_isShown}, caller={caller})");
+        }
+
         if (!_isShown) return; // already hiding or hidden
         _isShown = false;
 
@@ -590,9 +626,11 @@ public partial class LauncherWindow : Window
         };
         anim.Completed += (_, _) =>
         {
+            bool current = generation == _showGeneration;
+            Log.Write($"HideWindow: fade-out completed (genMatch={current})");
             // Skip if a newer ShowWindow started after this fade-out began —
             // otherwise the deferred Hide() would blank the re-shown window.
-            if (generation == _showGeneration)
+            if (current)
                 Hide();
         };
         BeginAnimation(OpacityProperty, anim);

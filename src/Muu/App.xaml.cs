@@ -36,6 +36,11 @@ public partial class App : Application
         // Load persisted settings
         Settings = AppSettings.Load();
 
+        // Opt-in diagnostics (settings → 情報 → デバッグログ)
+        Log.Enabled = Settings.DebugLogging;
+        Log.StartSession(
+            $"Muu {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version} started (debug logging enabled)");
+
         // Build search pipeline
         var providers = new ISearchProvider[]
         {

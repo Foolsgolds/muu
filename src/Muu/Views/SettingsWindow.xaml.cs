@@ -41,6 +41,7 @@ public partial class SettingsWindow : Window
         UpdateDisplay();
 
         AutoStartCheckBox.IsChecked = StartupRegistration.IsRegistered();
+        DebugLogCheckBox.IsChecked = s.DebugLogging;
 
         VersionText.Text = $"Version {GetVersionString()}";
 
@@ -357,6 +358,13 @@ public partial class SettingsWindow : Window
                 "Muu", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
+
+        // Debug logging: apply immediately and persist
+        s.DebugLogging = DebugLogCheckBox.IsChecked == true;
+        bool wasEnabled = Log.Enabled;
+        Log.Enabled = s.DebugLogging;
+        if (Log.Enabled && !wasEnabled)
+            Log.StartSession("Debug logging enabled from settings");
 
         s.Save();
 
